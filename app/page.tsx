@@ -179,8 +179,9 @@ export default function Home() {
         <div className="hero-stamp">ONLY<br />TWO<br />SIDES</div>
       </section>
 
-      <section className="people-ribbon" aria-label="时代少年团公开宣传照装饰">
-        <div className="people-copy"><span>PUBLIC FIGURE INDEX / TNT</span><h2>你喜欢谁，<br /><b>你记得什么。</b></h2><p>用公开宣传照和成员信息，把选择从情绪带到具体的人与舞台。</p><small>图片：公开报道中的时代少年团宣传照 · 装饰用途</small></div>
+      <section className="people-ribbon" aria-label="时代峰峻旗下艺人公开宣传照装饰">
+        <div className="people-copy"><span>PUBLIC FIGURE INDEX / FJ</span><h2>你喜欢谁，<br /><b>你记得什么。</b></h2><p>用公开宣传照和成员信息，把选择从情绪带到具体的人与舞台。</p><small>图片：公开报道中的艺人宣传照 · 装饰用途</small></div>
+        <figure><img src="people/tfboys.jpg" alt="TFBOYS 公开宣传照" /><figcaption>TFBOYS / FIRST SIGNAL</figcaption></figure>
         <figure><img src="people/tnt-white.jpg" alt="时代少年团白色造型公开宣传照" /><figcaption>TEENS IN TIMES / WHITE SIGNAL</figcaption></figure>
         <figure><img src="people/tnt-utopia.jpg" alt="时代少年团公开宣传照" /><figcaption>THE STAGE / BLUE HOUR</figcaption></figure>
       </section>
