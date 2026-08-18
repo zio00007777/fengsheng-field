@@ -41,7 +41,7 @@ function Countdown({ seconds }: { seconds: number }) {
 }
 
 export default function Home() {
-  const [phase, setPhase] = useState<"choose" | "quiz" | "score" | "arena">("choose");
+  const [phase, setPhase] = useState<"choose" | "quiz" | "arena">("choose");
   const [side, setSide] = useState<Side | null>(null);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState("");
@@ -112,7 +112,7 @@ export default function Home() {
       return;
     }
     fetch("/api/quiz/answer", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ side, answers: nextAnswers }) }).catch(() => undefined);
-    setPhase("score");
+    setPhase("arena");
   }
 
   function claimStick() {
@@ -148,12 +148,6 @@ export default function Home() {
 
   return (
     <main className={`signal-room ${side === "support" ? "support-room" : "against-room"}`}>
-      <header className="signal-header">
-        <button className="signal-brand" onClick={() => setPhase("choose")}><b>FJ</b><span>立场现场 / SIGNAL ROOM</span></button>
-        <div className="signal-live"><i />LIVE <span>每 0.6 秒更新一次</span></div>
-        <a href="/admin">后台</a>
-      </header>
-
       <section className="tension-hero">
         <div className="hero-heading"><span>FIELD 001 / TWO SIDES ONLY</span><h1>现在，<em>站哪边？</em></h1><p>一个选择，四步确认。让你支持的声音先被看见。</p></div>
         <div className="battle-grid">
@@ -189,9 +183,7 @@ export default function Home() {
 
       {phase === "quiz" && side && question && <section className="quiz-panel"><aside><span>STEP {String(questionIndex + 1).padStart(2, "0")} / 04</span><strong>{side === "support" ? "TF 五代" : "反对现场"}</strong><p>选一个最接近你的答案，确认后进入下一题。</p></aside><div className="quiz-main"><div className="quiz-progress"><i style={{ width: `${((questionIndex + 1) / questions.length) * 100}%` }} /></div><span className="quiz-kicker">{side === "support" ? "SUPPORT CHECK / TF5" : "AGAINST CHECK / OPINION"}</span><h2>{question.question}</h2><div className="quiz-options">{question.options.map((option) => <button className={selectedAnswer === option ? "selected" : ""} key={option} onClick={() => setSelectedAnswer(option)}><span>{selectedAnswer === option ? "●" : "○"}</span>{option}<b>↗</b></button>)}</div><button className="quiz-confirm" disabled={!selectedAnswer} onClick={answerQuestion}>确认答案，继续 <b>→</b></button></div></section>}
 
-      {phase === "score" && side && <section className="result-panel"><span>STEP 05 / YOU ARE IN</span><h2>你已经站在<br /><b>{activeLabel}</b>。</h2><p>现场信号已更新。现在进入这一边，完成你的第一步动作。</p><div className="result-numbers"><div><small>反对</small><strong>{number(displayAgainstScore)}</strong></div><b>VS</b><div><small>支持 TF 五代</small><strong>{number(displaySupportScore)}</strong></div></div><button onClick={() => setPhase("arena")}>进入{activeLabel} <b>→</b></button></section>}
-
-      {phase === "arena" && side && <section className="action-panel"><div className="action-heading"><span>YOUR SIDE / {side === "support" ? "02" : "01"}</span><h2>{activeLabel}</h2><p>{side === "support" ? "完成问答后，先送出一份特效礼物，再领取每小时应援棒。" : "现在就把反对理由留下。"}</p></div>{side === "support" ? <div className="support-actions"><div className="gift-callout"><b>第一应援动作</b><span>送出特效礼物，增加对应支持值</span></div><div className="action-label"><span>特效礼物 / 立即送出</span><small>价格与支持值一一对应</small></div><div className="gift-actions">{gifts.map((item) => <button className="gift-card" key={item.id} onClick={() => setGift(item)}><span className="gift-card-glow" /><span className="gift-card-icon"><img src={item.image} alt="" /></span><strong>{item.name}</strong><small>¥{item.price} · +{item.value}</small><em>送出 ↗</em></button>)}</div><div className="tf5-card"><div className="tf5-mark">TF<br /><b>5</b></div><div><span>SUPPORT SIGNAL / HOURLY</span><h3>TF 五代应援棒 <b>+1</b></h3><p>{cooldown > 0 ? <>下一根可领取：<Countdown seconds={cooldown} /></> : "每小时可点亮一根"}</p></div><button disabled={cooldown > 0} onClick={claimStick}>{cooldown > 0 ? <Countdown seconds={cooldown} /> : "点亮"}</button></div></div> : <div className="against-actions"><span className="action-label">选择你最主要的反对理由</span><div className="reason-grid">{quizSets.against[0].options.map((reason) => <button className={againstReason === reason ? "selected" : ""} key={reason} onClick={() => setAgainstReason(reason)}>{reason}<b>{againstReason === reason ? "✓" : "+"}</b></button>)}</div><button className="against-submit" disabled={!againstReason} onClick={sendAgainstReason}>留下这条反对声量 <b>→</b></button><p>只记录理由，不开放辱骂、人肉或骚扰内容。</p></div>}</section>}
+      {phase === "arena" && side && <section className="action-panel"><div className="action-heading"><span>YOUR SIDE / {side === "support" ? "02" : "01"}</span><h2>{activeLabel}</h2><p>{side === "support" ? "四题确认完成，直接开始应援：先送出高支持力礼物，再领取每小时应援棒。" : "现在就把反对理由留下。"}</p></div>{side === "support" ? <div className="support-actions"><div className="gift-callout"><b>第一应援动作</b><span>送出特效礼物，增加对应支持值</span></div><div className="action-label"><span>特效礼物 / 立即送出</span><small>高价礼物 = 更高支持力</small></div><div className="gift-actions">{gifts.map((item) => <button className={`gift-card ${item.value >= 100 ? "gift-card-high" : ""}`} key={item.id} onClick={() => setGift(item)}><span className="gift-card-glow" /><span className="gift-card-icon"><img src={item.image} alt="" /></span><strong>{item.name}</strong><b className="gift-card-power">+{item.value}<span>支持力</span></b><small>¥{item.price} / 送出即计入</small><em>送出 ↗</em></button>)}</div><div className="tf5-card"><div className="tf5-mark">TF<br /><b>5</b></div><div><span>SUPPORT SIGNAL / HOURLY</span><h3>TF 五代应援棒 <b>+1</b></h3><p>{cooldown > 0 ? <>下一根可领取：<Countdown seconds={cooldown} /></> : "每小时可点亮一根"}</p></div><button disabled={cooldown > 0} onClick={claimStick}>{cooldown > 0 ? <Countdown seconds={cooldown} /> : "点亮"}</button></div></div> : <div className="against-actions"><span className="action-label">选择你最主要的反对理由</span><div className="reason-grid">{quizSets.against[0].options.map((reason) => <button className={againstReason === reason ? "selected" : ""} key={reason} onClick={() => setAgainstReason(reason)}>{reason}<b>{againstReason === reason ? "✓" : "+"}</b></button>)}</div><button className="against-submit" disabled={!againstReason} onClick={sendAgainstReason}>留下这条反对声量 <b>→</b></button><p>只记录理由，不开放辱骂、人肉或骚扰内容。</p></div>}</section>}
 
       <footer className="signal-footer"><span>FJ / SIGNAL ROOM</span><span>支持 TF 五代 · 反对时代峰峻</span><a href="/admin">ADMIN →</a></footer>
 
