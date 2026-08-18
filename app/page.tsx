@@ -13,10 +13,10 @@ type Gift = {
 };
 
 const gifts: Gift[] = [
-  { id: "spark", name: "星火", price: 6, value: 6, icon: "✦", note: "轻量点亮" },
-  { id: "wave", name: "声浪", price: 18, value: 25, icon: "≈", note: "让观点被听见" },
-  { id: "pulse", name: "心跳", price: 68, value: 100, icon: "◉", note: "全场脉冲特效" },
-  { id: "signal", name: "信号塔", price: 128, value: 220, icon: "⌁", note: "登上本场焦点" },
+  { id: "spark", name: "星火", price: 0, value: 6, icon: "✦", note: "轻量点亮" },
+  { id: "wave", name: "声浪", price: 0, value: 25, icon: "≈", note: "让观点被听见" },
+  { id: "pulse", name: "心跳", price: 0, value: 100, icon: "◉", note: "全场脉冲特效" },
+  { id: "signal", name: "信号塔", price: 0, value: 220, icon: "⌁", note: "登上本场焦点" },
 ];
 
 const prompts = [
@@ -61,21 +61,16 @@ export default function Home() {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Side[]>([]);
   const [activeSide, setActiveSide] = useState<Side>("support");
-  const [challengeScore, setChallengeScore] = useState(48216);
+  const [challengeScore] = useState(48216);
   const [supportScore, setSupportScore] = useState(51284);
-  const [stickClaimed, setStickClaimed] = useState(false);
   const [cooldown, setCooldown] = useState(47 * 60 + 22);
   const [selectedGift, setSelectedGift] = useState<Gift | null>(null);
   const [paymentOpen, setPaymentOpen] = useState(false);
-  const [paymentChannel, setPaymentChannel] = useState<"wechat" | "alipay">("wechat");
   const [notice, setNotice] = useState("");
   const [livePulse, setLivePulse] = useState(0);
 
   useEffect(() => {
-    if (cooldown <= 0) {
-      setStickClaimed(false);
-      return;
-    }
+    if (cooldown <= 0) return;
     const timer = window.setInterval(() => setCooldown((current) => Math.max(0, current - 1)), 1000);
     return () => window.clearInterval(timer);
   }, [cooldown]);
@@ -95,18 +90,6 @@ export default function Home() {
   const supportPercent = Math.round((supportScore / total) * 100);
   const challengePercent = 100 - supportPercent;
   const currentPrompt = prompts[step];
-  const sideCopy = activeSide === "support" ? {
-    kicker: "支持方 / SIGNAL",
-    title: "把喜欢，变成看得见的信号",
-    body: "支持不必喧哗。每一根应援棒、每一个礼物，都是你选择留下的坐标。",
-    action: "为支持加一格",
-  } : {
-    kicker: "质疑方 / QUESTION",
-    title: "把问题，摆到光里讨论",
-    body: "质疑不是攻击。先看议题、再做选择，让不同声音拥有清晰的边界。",
-    action: "查看质疑议题",
-  };
-
   const cooldownLabel = useMemo(() => {
     const minutes = Math.floor(cooldown / 60).toString().padStart(2, "0");
     const seconds = (cooldown % 60).toString().padStart(2, "0");
@@ -127,9 +110,8 @@ export default function Home() {
   }
 
   function claimStick() {
-    if (stickClaimed || cooldown > 0) return;
+    if (cooldown > 0) return;
     setSupportScore((score) => score + 1);
-    setStickClaimed(true);
     setCooldown(60 * 60);
     setNotice("应援棒已点亮，支持值 +1");
   }
@@ -139,7 +121,7 @@ export default function Home() {
     setSupportScore((score) => score + selectedGift.value);
     setPaymentOpen(false);
     setSelectedGift(null);
-    setNotice("支付沙盒已完成，礼物特效正在入场");
+    setNotice("免费特效已发送，应援值正在入场");
   }
 
   function openGift(gift: Gift) {
@@ -216,11 +198,11 @@ export default function Home() {
       </section>
 
       <section className="support-console" id="support-console">
-        <div className="console-intro"><p className="eyebrow">SUPPORT CONSOLE / 应援台</p><h2>把你的选择，<br /><em>送进现场。</em></h2><p>应援棒每 60 分钟可领取 1 根。礼物为虚拟互动商品，价格与应援值在确认页展示。</p><div className="console-rule"><span className="rule-icon">i</span><span>当前为支付沙盒演示，正式支付接入前不会产生真实扣款。</span></div></div>
+        <div className="console-intro"><p className="eyebrow">SUPPORT CONSOLE / 应援台</p><h2>把你的选择，<br /><em>送进现场。</em></h2><p>应援棒每 60 分钟可领取 1 根。所有特效礼物完全免费，只用于增加现场互动应援值。</p><div className="console-rule"><span className="rule-icon">i</span><span>免费互动，不接入支付，不产生任何扣款。</span></div></div>
         <div className="console-actions">
-          <div className="stick-card"><div className="stick-visual"><div className="stick-glow" /><span>✦</span></div><div className="stick-info"><span className="mini-label">HOURLY LIGHTSTICK</span><h3>应援棒 <b>+1</b></h3><p>{stickClaimed ? "本小时已点亮" : cooldown > 0 ? `下一根将在 ${cooldownLabel} 后可领取` : "现在可以领取"}</p></div><button className="stick-button" disabled={stickClaimed || cooldown > 0} onClick={claimStick}>{stickClaimed ? "已点亮" : cooldown > 0 ? cooldownLabel : "领取"}</button></div>
+          <div className="stick-card"><div className="stick-visual"><div className="stick-glow" /><span>✦</span></div><div className="stick-info"><span className="mini-label">HOURLY LIGHTSTICK</span><h3>应援棒 <b>+1</b></h3><p>{cooldown > 0 ? `下一根将在 ${cooldownLabel} 后可领取` : "现在可以领取"}</p></div><button className="stick-button" disabled={cooldown > 0} onClick={claimStick}>{cooldown > 0 ? cooldownLabel : "领取"}</button></div>
           <div className="gift-header"><span className="mini-label">EFFECT GIFTS</span><span>选择一个特效礼物</span></div>
-          <div className="gift-grid">{gifts.map((gift) => <button className="gift-card" key={gift.id} onClick={() => openGift(gift)}><span className="gift-icon">{gift.icon}</span><span className="gift-name">{gift.name}</span><span className="gift-note">{gift.note}</span><span className="gift-price">¥{gift.price} <i>+{gift.value}</i></span></button>)}</div>
+          <div className="gift-grid">{gifts.map((gift) => <button className="gift-card" key={gift.id} onClick={() => openGift(gift)}><span className="gift-icon">{gift.icon}</span><span className="gift-name">{gift.name}</span><span className="gift-note">{gift.note}</span><span className="gift-price">免费 <i>+{gift.value}</i></span></button>)}</div>
         </div>
       </section>
 
@@ -231,13 +213,13 @@ export default function Home() {
 
       <section className="rules-section" id="rules"><div><p className="eyebrow">FIELD RULES / 参与规则</p><h2>把对立留在观点里，<br /><em>把边界留给每个人。</em></h2></div><div className="rule-columns"><div><span>01</span><h3>不做辱骂场</h3><p>不鼓励辱骂、人肉、骚扰和未经证实的指控。观点卡片均经过预置审核。</p></div><div><span>02</span><h3>应援值不是事实</h3><p>分数只代表本场互动选择，不代表任何一方的事实正确性或公众共识。</p></div><div><span>03</span><h3>理性消费</h3><p>礼物仅为互动展示。正式上线需完成支付、退款与未成年人消费合规配置。</p></div></div></section>
 
-      <footer className="site-footer"><div className="brand-lockup"><div className="brand-mark small" aria-hidden="true"><span>F</span><span>J</span></div><div><p className="brand-name">峰声 FIELD</p><p className="brand-subtitle">观点先于情绪</p></div></div><span>© 2026 FIELD NOTE · 预览版本</span><span>隐私政策　服务条款　退款说明</span></footer>
+      <footer className="site-footer"><div className="brand-lockup"><div className="brand-mark small" aria-hidden="true"><span>F</span><span>J</span></div><div><p className="brand-name">峰声 FIELD</p><p className="brand-subtitle">观点先于情绪</p></div></div><span>© 2026 FIELD NOTE · 预览版本</span><span>隐私政策 · 服务条款 · 退款说明</span></footer>
 
       {notice && <div className="toast" role="status"><span>✦</span>{notice}</div>}
 
       {entryOpen && <div className="modal-backdrop entry-backdrop"><div className="entry-modal"><button className="modal-close" onClick={() => setEntryOpen(false)} aria-label="关闭问答">×</button><div className="entry-progress"><span className="mini-label">FIELD ENTRY</span><span>{currentPrompt.eyebrow}</span></div><div className="entry-orbit" aria-hidden="true"><span>FJ</span></div><p className="eyebrow">进入你的观点现场</p><h2>{currentPrompt.question}</h2><p className="entry-description">没有标准答案，完成三次选择后，我们会把你带到更接近你的那一侧。</p><div className="entry-options">{currentPrompt.options.map((option) => <button key={option.side} onClick={() => chooseAnswer(option.side)} className={option.side === "support" ? "entry-support" : "entry-challenge"}><span>{option.side === "support" ? "✦" : "◒"}</span>{option.label}<b>↗</b></button>)}</div><div className="entry-footer"><span>仅用于本次现场导览</span><span>不储存身份信息</span></div></div></div>}
 
-      {paymentOpen && selectedGift && <div className="modal-backdrop"><div className="payment-modal"><button className="modal-close" onClick={() => setPaymentOpen(false)} aria-label="关闭支付">×</button><p className="eyebrow">CONFIRM GIFT / 确认礼物</p><div className="payment-gift"><span className="gift-icon large">{selectedGift.icon}</span><div><h2>{selectedGift.name}</h2><p>{selectedGift.note} · 应援值 +{selectedGift.value}</p></div><strong>¥{selectedGift.price}</strong></div><div className="channel-label">选择支付方式</div><div className="channels"><button className={paymentChannel === "wechat" ? "selected" : ""} onClick={() => setPaymentChannel("wechat")}><span className="channel-icon wechat">微</span>微信支付</button><button className={paymentChannel === "alipay" ? "selected" : ""} onClick={() => setPaymentChannel("alipay")}><span className="channel-icon alipay">支</span>支付宝</button></div><div className="sandbox-note"><span>沙盒演示</span>点击确认将模拟支付成功，不会产生真实扣款</div><button className="pay-button" onClick={payForGift}>确认支付 ¥{selectedGift.price} <span>↗</span></button></div></div>}
+      {paymentOpen && selectedGift && <div className="modal-backdrop"><div className="payment-modal"><button className="modal-close" onClick={() => setPaymentOpen(false)} aria-label="关闭特效">×</button><p className="eyebrow">SEND EFFECT / 发送免费特效</p><div className="payment-gift"><span className="gift-icon large">{selectedGift.icon}</span><div><h2>{selectedGift.name}</h2><p>{selectedGift.note} · 应援值 +{selectedGift.value}</p></div><strong>FREE</strong></div><div className="sandbox-note"><span>免费互动</span>点击发送即可增加应援值，不需要登录，不会产生扣款</div><button className="pay-button" onClick={payForGift}>免费发送 +{selectedGift.value} <span>↗</span></button></div></div>}
     </main>
   );
 }
