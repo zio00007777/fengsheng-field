@@ -33,7 +33,7 @@ test("product surface includes guided quiz and operational actions", async () =>
   assert.match(page, /quizSets/);
   assert.match(page, /setPhase\("score"\)/);
   assert.match(page, /TF 五代应援信号已点亮/);
-  assert.match(page, /选择主要反对信号/);
+  assert.match(page, /选择一张反对贴纸/);
   assert.match(page, /TF 五代哪位公开练习生/);
   assert.match(page, /微信|支付宝|安全支付|真实支付/);
   assert.match(admin, /运营后台/);
