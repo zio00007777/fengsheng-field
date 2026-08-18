@@ -18,8 +18,10 @@ export default function AdminPage() {
   const [adjustValue, setAdjustValue] = useState("1");
 
   async function loadOverview() {
-    const response = await fetch("/api/admin/overview", { headers: { "x-admin-token": token } });
-    if (!response.ok) { setError("管理员密钥无效，或服务端尚未配置 ADMIN_TOKEN。"); return; }
+    const login = await fetch("/api/admin/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ token }) });
+    if (!login.ok) { setError("管理员密钥无效，或服务端尚未配置 ADMIN_TOKEN。"); return; }
+    const response = await fetch("/api/admin/overview");
+    if (!response.ok) { setError("登录成功，但后台数据暂时不可用。"); return; }
     setOverview(await response.json());
     setAuthed(true);
   }
