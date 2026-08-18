@@ -1,9 +1,9 @@
 import { db, json } from "../_lib";
 
 const fallbackQuestions = [
-  { id: "support-favorite-group", side: "support", question: "你最喜欢时代峰峻旗下哪一组？", options: ["TFBOYS", "时代少年团", "TF家族练习生"] },
+  { id: "support-favorite-group", side: "support", question: "你最喜欢时代峰峻旗下哪一组？", options: ["TFBOYS", "时代少年团", "TOP登陆少年", "TF家族练习生"] },
   { id: "support-favorite-member", side: "support", question: "你最喜欢时代少年团哪位成员？", options: ["马嘉祺", "丁程鑫", "宋亚轩", "刘耀文", "张真源", "严浩翔", "贺峻霖"] },
-  { id: "support-tnt-debut", side: "support", question: "时代少年团正式出道是哪一年？", options: ["2018", "2019", "2020"] },
+  { id: "support-top-debut", side: "support", question: "TOP登陆少年正式亮相是哪一年？", options: ["2023", "2024", "2025"] },
   { id: "support-tfboys-debut", side: "support", question: "TFBOYS 正式出道是哪一年？", options: ["2012", "2013", "2014"] },
   { id: "against-management", side: "against", question: "你最反感时代峰峻哪个环节？", options: ["艺人管理", "资源分配", "粉丝沟通"] },
   { id: "against-focus", side: "against", question: "哪类问题最影响你对公司的判断？", options: ["行程与休息", "舞台与制作", "公开回应"] },

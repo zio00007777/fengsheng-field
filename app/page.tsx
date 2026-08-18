@@ -8,9 +8,9 @@ type Quiz = { id: string; question: string; options: string[] };
 
 const quizSets: Record<Side, Quiz[]> = {
   support: [
-    { id: "favorite-group", question: "你最喜欢时代峰峻旗下哪一组？", options: ["TFBOYS", "时代少年团", "TF家族练习生"] },
+    { id: "favorite-group", question: "你最喜欢时代峰峻旗下哪一组？", options: ["TFBOYS", "时代少年团", "TOP登陆少年", "TF家族练习生"] },
     { id: "favorite-member", question: "你最喜欢时代少年团哪位成员？", options: ["马嘉祺", "丁程鑫", "宋亚轩", "刘耀文", "张真源", "严浩翔", "贺峻霖"] },
-    { id: "tnt-debut", question: "时代少年团正式出道是哪一年？", options: ["2018", "2019", "2020"] },
+    { id: "top-debut", question: "TOP登陆少年正式亮相是哪一年？", options: ["2023", "2024", "2025"] },
     { id: "tfboys-debut", question: "TFBOYS 正式出道是哪一年？", options: ["2012", "2013", "2014"] },
   ],
   against: [
@@ -180,14 +180,15 @@ export default function Home() {
       </section>
 
       <section className="people-ribbon" aria-label="时代峰峻旗下艺人公开宣传照装饰">
-        <div className="people-copy"><span>PUBLIC FIGURE INDEX / FJ</span><h2>你喜欢谁，<br /><b>你记得什么。</b></h2><p>用公开宣传照和成员信息，把选择从情绪带到具体的人与舞台。</p><small>图片：公开报道中的艺人宣传照 · 装饰用途</small></div>
+        <div className="people-copy"><span>PUBLIC FIGURE INDEX / FJ</span><h2>人物索引，<br /><b>先认识再选择。</b></h2><p>这里展示三组代表性艺人阵容：TFBOYS、时代少年团、TOP登陆少年。</p><small>公开报道图片 · 页面装饰用途</small></div>
         <figure><img src="people/tfboys.jpg" alt="TFBOYS 公开宣传照" /><figcaption>TFBOYS / FIRST SIGNAL</figcaption></figure>
         <figure><img src="people/tnt-white.jpg" alt="时代少年团白色造型公开宣传照" /><figcaption>TEENS IN TIMES / WHITE SIGNAL</figcaption></figure>
         <figure><img src="people/tnt-utopia.jpg" alt="时代少年团公开宣传照" /><figcaption>THE STAGE / BLUE HOUR</figcaption></figure>
+        <figure><img src="people/top-landing.jpg" alt="TOP登陆少年公开宣传照" /><figcaption>TOP / NEW SIGNAL</figcaption></figure>
       </section>
 
       <section className={`score-strip ${signalPulse ? "signal-pulse" : ""}`}>
-        <div className="score-title"><span>LIVE BATTLE <b>FIELD SIGNAL / AUTO ROLL</b></span><strong>现在，哪一边更大声？</strong><small>视觉信号持续滚动 · 实际数据以服务端记录为准</small></div>
+        <div className="score-title"><span>LIVE BATTLE <b>FIELD SIGNAL / AUTO ROLL</b></span><strong>当前立场累计</strong><small>数字会快速滚动；最终结果以服务端记录为准</small></div>
         <div className="score-number score-against"><small>反对时代峰峻</small><strong>{number(displayAgainstScore)}</strong><i>{againstPercent}%</i></div>
         <div className="score-vs">VS</div>
         <div className="score-number score-support"><small>支持时代峰峻</small><strong>{number(displaySupportScore)}</strong><i>{supportPercent}%</i></div>

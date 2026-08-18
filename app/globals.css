@@ -23,3 +23,105 @@
 @media(max-width:850px){.people-ribbon{grid-template-columns:1fr 1fr;padding:14px 6vw}.people-copy{grid-column:1/3;min-height:250px}.people-ribbon figure{min-height:210px}.people-ribbon img{min-height:210px}.score-number strong{font-size:60px}}
 .admin-row-edit { padding:4px 7px; border:1px solid #666; background:transparent; color:var(--paper); font-size:9px; }
 .admin-shell { min-height:100vh; background:#181818; color:var(--paper); padding:44px 6vw; }.admin-login { width:min(420px,100%); margin:14vh auto; }.admin-kicker { color:#8f8f8f; font:10px var(--mono); letter-spacing:.13em; }.admin-login h1,.admin-header h1 { margin:18px 0 8px; font:900 64px/.8 var(--display); }.admin-login p { color:#999; font-size:12px; }.admin-login input { width:100%; margin-top:25px; padding:15px; border:1px solid #555; background:#232323; color:var(--paper); outline:none; }.admin-login button { width:100%; margin-top:10px; padding:15px; border:0; background:var(--red); color:var(--black); font-weight:800; }.admin-login small { display:block; margin-top:12px; color:var(--red); line-height:1.5; }.admin-login a,.admin-header a { display:inline-block; margin-top:26px; color:#999; font:10px var(--mono); text-decoration:none; }.admin-header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:1px solid #444; padding-bottom:30px; }.admin-header h1 { margin-bottom:0; }.admin-grid { max-width:1200px; margin:38px auto; display:grid; grid-template-columns:1fr 1fr; gap:12px; }.admin-card { padding:23px; background:#232323; border:1px solid #393939; }.admin-card>span { color:#888; font:9px var(--mono); letter-spacing:.12em; }.admin-card h2 { margin:16px 0 22px; font:800 30px var(--display); }.admin-wide { grid-column:1/3; }.admin-scores { display:flex; justify-content:space-between; align-items:center; margin:35px 0 25px; }.admin-scores small { display:block; color:#aaa; font-size:10px; }.admin-scores strong { display:block; margin-top:6px; font:800 48px var(--display); }.admin-scores div:first-child strong { color:var(--red); }.admin-scores div:last-child strong { color:var(--blue-light); }.admin-scores>b { color:#777; font:10px var(--mono); }.admin-adjust { display:flex; gap:8px; }.admin-adjust select,.admin-adjust input { min-width:0; flex:1; padding:11px; border:1px solid #555; background:#1a1a1a; color:var(--paper); font-size:11px; }.admin-adjust input { max-width:75px; }.admin-adjust button,.admin-secondary { padding:11px 15px; border:1px solid var(--red); background:var(--red); color:var(--black); font-weight:800; font-size:11px; }.admin-list { border-top:1px solid #444; }.admin-row { display:grid; grid-template-columns:1fr 1fr auto; gap:10px; padding:14px 0; border-bottom:1px solid #3a3a3a; font-size:11px; align-items:center; }.admin-row span { color:#aaa; }.admin-row i { color:var(--blue-light); font:9px var(--mono); font-style:normal; }.admin-secondary { margin-top:18px; background:transparent; color:var(--paper); border-color:#666; }.admin-empty { color:#888; font-size:11px; line-height:1.6; }@media(max-width:700px){.admin-shell{padding:30px 5vw}.admin-grid{grid-template-columns:1fr}.admin-wide{grid-column:auto}.admin-header h1{font-size:51px}.admin-row{grid-template-columns:1fr;gap:5px}}
+
+/* Readability pass: keep the opposition sharp, but give every section a clear reading order. */
+.battle-header { height:58px; padding:0 3.2vw; }
+.wordmark { font-size:13px; }
+.battle-hero { min-height:480px; }
+.hero-side { min-height:480px; padding:42px 5.5vw 36px; }
+.hero-against { padding-right:7vw; }
+.hero-support { padding-left:7vw; }
+.hero-symbol { margin-top:auto; font-size:84px; }
+.hero-side h1 { margin-top:10px; font-size:clamp(58px,6.8vw,102px); line-height:.86; }
+.hero-side p { max-width:300px; margin:18px 0 18px; font-size:13px; line-height:1.65; }
+.hero-choice { padding:11px 15px; font-size:10px; }
+.hero-choice span { margin-left:30px; }
+.hero-stamp { right:2.5vw; bottom:23px; font-size:8px; }
+.score-strip { min-height:126px; padding:18px 3.2vw; }
+.score-title strong { margin-top:6px; font-size:20px; }
+.score-title>small { margin-top:6px; font-size:8px; }
+.score-number strong { font-size:clamp(38px,4.2vw,56px); }
+.score-number i { right:8%; }
+.score-bar { margin-top:9px; height:4px; }
+.people-ribbon { grid-template-columns:1.2fr repeat(4,1fr); gap:7px; padding:14px 3.2vw; }
+.people-copy { padding:18px 16px; }
+.people-copy h2 { margin:14px 0 11px; font-size:clamp(30px,3.3vw,46px); line-height:.9; }
+.people-copy p { max-width:220px; margin-bottom:12px; font-size:10px; line-height:1.55; }
+.people-copy>span,.people-copy small,.people-ribbon figcaption { font-size:8px; }
+.people-ribbon figure,.people-ribbon img { min-height:190px; }
+.people-ribbon figcaption { left:10px; bottom:10px; letter-spacing:.04em; }
+.entry-instruction { min-height:285px; padding:44px 9vw; grid-template-columns:.7fr 1fr 1.15fr; gap:32px; }
+.entry-instruction h2 { font-size:46px; line-height:.88; }
+.entry-instruction p { max-width:300px; font-size:12px; line-height:1.65; }
+.entry-buttons { gap:7px; }
+.entry-buttons button { padding:14px 16px; font-size:12px; }
+.quiz-stage { min-height:440px; padding:54px 9vw; gap:6vw; }
+.quiz-aside strong { margin-top:28px; font-size:44px; }
+.quiz-aside p { margin-top:15px; font-size:11px; }
+.quiz-progress { margin-bottom:25px; }
+.quiz-card h2 { margin:16px 0 22px; font-size:clamp(34px,4vw,48px); line-height:.96; }
+.quiz-options { grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:7px; }
+.quiz-options button { min-height:84px; padding:11px; font-size:11px; }
+.quiz-options button span { font-size:16px; }
+.quiz-options button b { font-size:16px; }
+.quiz-next { margin-top:11px; padding:12px 15px; }
+.result-stage { min-height:400px; padding:54px 10vw; }
+.result-stage h2 { margin:18px 0 12px; font-size:58px; line-height:.84; }
+.result-score { max-width:550px; margin:29px 0 21px; }
+.result-score strong { font-size:38px; }
+.result-cta { padding:13px 17px; }
+.arena-stage { min-height:430px; padding:55px 9vw; }
+.arena-heading h2 { margin:18px 0 5px; font-size:60px; }
+.arena-heading p { font-size:12px; }
+.support-actions,.against-actions { margin-top:32px; }
+.stick-action { padding:15px; gap:14px; }
+.stick-shape { width:44px; height:64px; font-size:20px; }
+.stick-action h3 { margin:5px 0 3px; font-size:21px; }
+.gift-heading { margin:24px 0 9px; font-size:13px; }
+.gift-actions { gap:7px; }
+.gift-actions .gift-card { min-height:122px; padding:12px; }
+.gift-card-icon { width:40px; height:40px; }
+.gift-card strong { font-size:12px; }
+.gift-card small { font-size:8px; }
+.reason-grid { gap:7px; }
+.reason-grid button { padding:14px; font-size:12px; }
+.against-submit { margin-top:11px; padding:13px 17px; }
+.battle-footer { min-height:62px; }
+.gift-modal { padding:26px; }
+.gift-modal-main { padding:24px 0 16px; }
+.gift-modal-main h2 { font-size:28px; }
+
+@media(max-width:850px){
+  .battle-hero { min-height:auto; }
+  .hero-side { min-height:350px; padding:34px 8vw 28px; }
+  .hero-against,.hero-support { padding-right:8vw; padding-left:8vw; }
+  .hero-symbol { margin-top:33px; font-size:68px; }
+  .hero-side h1 { font-size:58px; }
+  .hero-side p { max-width:270px; margin:13px 0; font-size:12px; }
+  .score-strip { padding:17px 6vw; }
+  .score-number strong { font-size:42px; }
+  .people-ribbon { grid-template-columns:1fr 1fr; padding:12px 6vw; }
+  .people-copy { grid-column:1/3; min-height:190px; }
+  .people-copy h2 { font-size:34px; }
+  .people-ribbon figure,.people-ribbon img { min-height:160px; }
+  .entry-instruction,.quiz-stage { padding:46px 8vw; }
+  .entry-instruction { min-height:330px; gap:20px; }
+  .entry-instruction h2 { font-size:44px; }
+  .quiz-stage { min-height:500px; }
+  .quiz-aside strong { margin-top:18px; font-size:40px; }
+  .quiz-card h2 { font-size:36px; }
+  .result-stage { padding:48px 8vw; }
+  .result-stage h2 { font-size:50px; }
+  .arena-stage { padding:48px 8vw; }
+  .arena-heading h2 { font-size:51px; }
+}
+
+@media(max-width:450px){
+  .score-title strong { font-size:18px; }
+  .score-number strong { font-size:35px; }
+  .hero-side h1 { font-size:52px; }
+  .entry-instruction h2 { font-size:40px; }
+  .quiz-card h2 { font-size:33px; }
+  .result-stage h2 { font-size:45px; }
+  .arena-heading h2 { font-size:46px; }
+}
