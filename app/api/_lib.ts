@@ -1,6 +1,10 @@
 import { env } from "cloudflare:workers";
 
-export type RuntimeEnv = typeof env & { DB?: D1Database };
+export type RuntimeEnv = typeof env & {
+  DB?: D1Database;
+  PAYMENT_PROVIDER?: string;
+  PAYMENT_WEBHOOK_SECRET?: string;
+};
 
 export const fallbackGifts = {
   spark: { name: "星火", priceCents: 600, scoreValue: 6, icon: "✦" },
@@ -28,6 +32,10 @@ export function json(data: unknown, init: ResponseInit = {}) {
 
 export function db() {
   return (env as RuntimeEnv).DB;
+}
+
+export function paymentProvider() {
+  return (env as RuntimeEnv).PAYMENT_PROVIDER;
 }
 
 export async function scoreTotals() {

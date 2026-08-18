@@ -46,6 +46,8 @@ export default function Home() {
   const [answers, setAnswers] = useState<string[]>([]);
   const [supportScore, setSupportScore] = useState(initialScore.support);
   const [againstScore, setAgainstScore] = useState(initialScore.against);
+  const [visualNudge, setVisualNudge] = useState({ support: 0, against: 0 });
+  const [signalPulse, setSignalPulse] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [gift, setGift] = useState<Gift | null>(null);
   const [againstReason, setAgainstReason] = useState("");
@@ -53,9 +55,6 @@ export default function Home() {
 
   const questions = side ? quizSets[side] : [];
   const question = questions[questionIndex];
-  const total = supportScore + againstScore;
-  const supportPercent = Math.round((supportScore / total) * 100);
-  const againstPercent = 100 - supportPercent;
   const activeLabel = side === "support" ? "支持时代峰峻" : "反对时代峰峻";
 
   useEffect(() => {
@@ -63,6 +62,18 @@ export default function Home() {
     const timer = window.setInterval(() => setCooldown((current) => Math.max(0, current - 1)), 1000);
     return () => window.clearInterval(timer);
   }, [cooldown]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setVisualNudge((current) => ({
+        support: current.support + (Math.random() > 0.38 ? 1 : 0),
+        against: current.against + (Math.random() > 0.52 ? 1 : 0),
+      }));
+      setSignalPulse(true);
+      window.setTimeout(() => setSignalPulse(false), 620);
+    }, 2800);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     fetch("/api/scoreboard").then((response) => response.ok ? response.json() : null).then((data) => {
@@ -118,13 +129,26 @@ export default function Home() {
 
   function buyGift() {
     if (!gift) return;
-    setSupportScore((current) => current + gift.value);
-    setGift(null);
-    setNotice(`${gift.name} 已送出，支持值 +${gift.value}`);
-    fetch("/api/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ giftId: gift.id }) }).catch(() => undefined);
+    const selectedGift = gift;
+    fetch("/api/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ giftId: selectedGift.id }) })
+      .then(async (response) => ({ ok: response.ok, data: await response.json().catch(() => null) }))
+      .then(({ ok, data }) => {
+        if (!ok || !data?.paymentUrl) {
+          setNotice("真实支付通道尚未配置，未产生扣款");
+          return;
+        }
+        window.location.assign(data.paymentUrl);
+      })
+      .catch(() => setNotice("支付服务暂时不可用，未产生扣款"));
   }
 
   const battlefieldClass = side === "support" ? "support-battle" : "against-battle";
+
+  const displaySupportScore = supportScore + visualNudge.support;
+  const displayAgainstScore = againstScore + visualNudge.against;
+  const total = displaySupportScore + displayAgainstScore;
+  const supportPercent = Math.round((displaySupportScore / total) * 100);
+  const againstPercent = 100 - supportPercent;
 
   return (
     <main className={`battle-site ${battlefieldClass}`}>
@@ -153,11 +177,11 @@ export default function Home() {
         <div className="hero-stamp">ONLY<br />TWO<br />SIDES</div>
       </section>
 
-      <section className="score-strip">
-        <div className="score-title"><span>LIVE BATTLE</span><strong>现在，哪一边更大声？</strong></div>
-        <div className="score-number score-against"><small>反对时代峰峻</small><strong>{number(againstScore)}</strong><i>{againstPercent}%</i></div>
+      <section className={`score-strip ${signalPulse ? "signal-pulse" : ""}`}>
+        <div className="score-title"><span>LIVE BATTLE <b>FIELD SIGNAL / AUTO ROLL</b></span><strong>现在，哪一边更大声？</strong><small>视觉信号持续滚动 · 实际数据以服务端记录为准</small></div>
+        <div className="score-number score-against"><small>反对时代峰峻</small><strong>{number(displayAgainstScore)}</strong><i>{againstPercent}%</i></div>
         <div className="score-vs">VS</div>
-        <div className="score-number score-support"><small>支持时代峰峻</small><strong>{number(supportScore)}</strong><i>{supportPercent}%</i></div>
+        <div className="score-number score-support"><small>支持时代峰峻</small><strong>{number(displaySupportScore)}</strong><i>{supportPercent}%</i></div>
         <div className="score-bar"><span style={{ width: `${againstPercent}%` }} /><b style={{ width: `${supportPercent}%` }} /></div>
       </section>
 
@@ -167,11 +191,11 @@ export default function Home() {
 
       {phase === "score" && side && <section className="result-stage"><span className="result-label">STEP 04 / RESULT</span><h2>你已经站在<br /><b>{activeLabel}</b>。</h2><p>现场比分已经更新。现在进入你的阵营，完成这一边的第一步动作。</p><div className="result-score"><div><small>反对方</small><strong>{number(againstScore)}</strong></div><span>VS</span><div><small>支持方</small><strong>{number(supportScore)}</strong></div></div><button className="result-cta" onClick={() => setPhase("arena")}>进入{activeLabel} <span>→</span></button></section>}
 
-      {phase === "arena" && side && <section className="arena-stage"><div className="arena-heading"><span>YOUR SIDE / {side === "support" ? "02" : "01"}</span><h2>{activeLabel}</h2><p>{side === "support" ? "现在就把支持变成数字。" : "现在就把反对理由留下。"}</p></div>{side === "support" ? <div className="support-actions"><div className="stick-action"><div className="stick-shape">✦</div><div><span>HOURLY SUPPORT</span><h3>应援棒 <b>+1</b></h3><p>{cooldown > 0 ? <>下一根可领取：<Countdown seconds={cooldown} /></> : "现在可以领取一根"}</p></div><button disabled={cooldown > 0} onClick={claimStick}>{cooldown > 0 ? <Countdown seconds={cooldown} /> : "点亮"}</button></div><div className="gift-heading"><span>特效礼物</span><small>选择价位，增加对应支持值</small></div><div className="gift-actions">{gifts.map((item) => <button key={item.id} onClick={() => setGift(item)}><span>{item.icon}</span><strong>{item.name}</strong><small>¥{item.price} · +{item.value}</small></button>)}</div></div> : <div className="against-actions"><p className="action-kicker">选择你最主要的反对理由</p><div className="reason-grid">{quizSets.against[0].options.concat(["其他运营问题"]).map((reason) => <button className={againstReason === reason ? "selected" : ""} key={reason} onClick={() => setAgainstReason(reason)}>{reason}<span>{againstReason === reason ? "✓" : "+"}</span></button>)}</div><button className="against-submit" disabled={!againstReason} onClick={sendAgainstReason}>留下这条反对声量 <span>→</span></button><p className="against-note">只记录你选择的理由，不开放辱骂、人肉或骚扰内容。</p></div>}</section>}
+      {phase === "arena" && side && <section className="arena-stage"><div className="arena-heading"><span>YOUR SIDE / {side === "support" ? "02" : "01"}</span><h2>{activeLabel}</h2><p>{side === "support" ? "现在就把支持变成数字。" : "现在就把反对理由留下。"}</p></div>{side === "support" ? <div className="support-actions"><div className="stick-action"><div className="stick-shape">✦</div><div><span>HOURLY SUPPORT</span><h3>应援棒 <b>+1</b></h3><p>{cooldown > 0 ? <>下一根可领取：<Countdown seconds={cooldown} /></> : "现在可以领取一根"}</p></div><button disabled={cooldown > 0} onClick={claimStick}>{cooldown > 0 ? <Countdown seconds={cooldown} /> : "点亮"}</button></div><div className="gift-heading"><span>特效礼物</span><small>选择价位，增加对应支持值</small></div><div className="gift-actions">{gifts.map((item) => <button className="gift-card" key={item.id} onClick={() => setGift(item)}><span className="gift-card-glow" /><span className="gift-card-icon">{item.icon}</span><strong>{item.name}</strong><small>¥{item.price} · +{item.value}</small><em>OPEN ↗</em></button>)}</div></div> : <div className="against-actions"><p className="action-kicker">选择你最主要的反对理由</p><div className="reason-grid">{quizSets.against[0].options.concat(["其他运营问题"]).map((reason) => <button className={againstReason === reason ? "selected" : ""} key={reason} onClick={() => setAgainstReason(reason)}>{reason}<span>{againstReason === reason ? "✓" : "+"}</span></button>)}</div><button className="against-submit" disabled={!againstReason} onClick={sendAgainstReason}>留下这条反对声量 <span>→</span></button><p className="against-note">只记录你选择的理由，不开放辱骂、人肉或骚扰内容。</p></div>}</section>}
 
       <footer className="battle-footer"><span>FJ / TWO SIDES ONLY</span><span>支持与反对，均由现场选择累积</span><a href="/admin">ADMIN →</a></footer>
 
-      {gift && <div className="gift-modal-backdrop"><div className="gift-modal"><button className="close-modal" onClick={() => setGift(null)}>×</button><span className="modal-kicker">CONFIRM SUPPORT GIFT</span><div className="gift-modal-main"><span>{gift.icon}</span><div><h2>{gift.name}</h2><p>支付 ¥{gift.price}，增加支持值 +{gift.value}</p></div></div><div className="sandbox-copy">当前为支付沙盒演示，尚未接入真实商户配置，不会产生真实扣款。</div><button className="gift-pay" onClick={buyGift}>确认支付 ¥{gift.price} <b>↗</b></button></div></div>}
+      {gift && <div className="gift-modal-backdrop"><div className="gift-modal"><button className="close-modal" onClick={() => setGift(null)}>×</button><span className="modal-kicker">SECURE PAYMENT GATE</span><div className="gift-modal-main"><span>{gift.icon}</span><div><h2>{gift.name}</h2><p>支付 ¥{gift.price}，支付平台确认后增加支持值 +{gift.value}</p></div></div><div className="secure-copy"><b>安全结算说明</b><span>订单、金额和应援值只在服务端生成；只有支付平台签名回调成功后才会记分。当前未配置商户证书，不会产生扣款。</span></div><button className="gift-pay" onClick={buyGift}>获取安全支付链接 <b>↗</b></button></div></div>}
       {notice && <div className="battle-toast">{notice}</div>}
     </main>
   );
