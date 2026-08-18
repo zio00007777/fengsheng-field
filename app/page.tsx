@@ -51,6 +51,7 @@ export default function Home() {
   const [visualNudge, setVisualNudge] = useState({ support: 0, against: 0 });
   const [signalPulse, setSignalPulse] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [stickUnavailable, setStickUnavailable] = useState(false);
   const [gift, setGift] = useState<Gift | null>(null);
   const [againstReason, setAgainstReason] = useState("");
   const [notice, setNotice] = useState("");
@@ -89,6 +90,13 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    fetch("/api/support-stick/claim").then(async (response) => ({ ok: response.ok, data: await response.json().catch(() => null) })).then(({ ok, data }) => {
+      if (!ok) { setStickUnavailable(true); return; }
+      if (data?.nextAt && data.nextAt > Date.now()) setCooldown(Math.ceil((data.nextAt - Date.now()) / 1000));
+    }).catch(() => setStickUnavailable(true));
+  }, []);
+
+  useEffect(() => {
     if (!notice) return;
     const timer = window.setTimeout(() => setNotice(""), 2800);
     return () => window.clearTimeout(timer);
@@ -115,12 +123,19 @@ export default function Home() {
     setPhase("arena");
   }
 
-  function claimStick() {
+  async function claimStick() {
+    if (stickUnavailable) { setNotice("应援状态暂不可用，未发放应援棒"); return; }
     if (cooldown > 0) return;
-    setSupportScore((current) => current + 1);
-    setCooldown(3600);
+    const response = await fetch("/api/support-stick/claim", { method: "POST" });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      if (data?.nextAt && data.nextAt > Date.now()) setCooldown(Math.ceil((data.nextAt - Date.now()) / 1000));
+      setNotice(response.status === 429 ? "本小时应援棒已领取" : "应援状态暂不可用，未发放应援棒");
+      return;
+    }
+    setSupportScore((current) => current + Number(data?.value ?? 1));
+    setCooldown(Math.max(0, Math.ceil((Number(data?.nextAt ?? Date.now() + 3600000) - Date.now()) / 1000)));
     setNotice("TF 五代应援信号已点亮，支持值 +1");
-    fetch("/api/support-stick/claim", { method: "POST" }).catch(() => undefined);
   }
 
   function sendAgainstReason() {

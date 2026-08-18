@@ -26,9 +26,10 @@ test("server-renders the two-side battle field", async () => {
 });
 
 test("product surface includes guided quiz and operational actions", async () => {
-  const [page, admin, schema, hosting] = await Promise.all([
+  const [page, admin, stickRoute, schema, hosting] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/admin/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/support-stick/claim/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../db/schema.ts", import.meta.url), "utf8"),
     readFile(new URL("../.openai/hosting.json", import.meta.url), "utf8"),
   ]);
@@ -42,6 +43,11 @@ test("product surface includes guided quiz and operational actions", async () =>
   assert.match(page, /第一应援动作/);
   assert.match(page, /送出特效礼物/);
   assert.match(page, /gift-card-high/);
+  assert.match(page, /stickUnavailable/);
+  assert.match(stickRoute, /export async function GET/);
+  assert.match(stickRoute, /NOT EXISTS/);
+  assert.match(stickRoute, /storage_not_configured/);
+  assert.match(stickRoute, /database.batch/);
   assert.match(page, /微信|支付宝|安全支付|真实支付/);
   assert.match(page, /不代表真实统计/);
   assert.match(page, /Math\.random/);

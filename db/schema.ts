@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 const created = () => integer("created_at", { mode: "number" }).notNull();
 
@@ -55,7 +55,9 @@ export const supportStickClaims = sqliteTable("support_stick_claims", {
   id: text("id").primaryKey(),
   sessionId: text("session_id").notNull(),
   createdAt: created(),
-});
+}, (table) => ({
+  sessionCreatedAt: index("support_stick_claims_session_created_at").on(table.sessionId, table.createdAt),
+}));
 
 export const orders = sqliteTable("orders", {
   id: text("id").primaryKey(),
