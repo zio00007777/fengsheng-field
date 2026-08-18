@@ -25,7 +25,7 @@ test("server-renders the interactive field", async () => {
   assert.match(html, /质疑 \/ 反对/);
   assert.match(html, /支持 \/ 应援/);
   assert.match(html, /应援棒/);
-  assert.match(html, /免费互动/);
+  assert.match(html, /支付沙盒演示/);
   assert.match(html, /预置议题/);
   assert.match(html, /不鼓励辱骂/);
   assert.doesNotMatch(html, /Your site is taking shape|react-loading-skeleton|codex-preview/);
@@ -41,7 +41,8 @@ test("site copy and behavior remain in the product surface", async () => {
 
   assert.match(page, /setCooldown\(60 \* 60\)/);
   assert.match(page, /应援棒已点亮，支持值 \+1/);
-  assert.match(page, /免费发送/);
+  assert.match(page, /微信支付/);
+  assert.match(page, /支付宝/);
   assert.match(page, /setSupportScore\(\(score\) => score \+ selectedGift\.value\)/);
   assert.match(layout, /title: "峰声 FIELD · 两种声音，一个现场"/);
   assert.match(css, /\.arena-grid/);
