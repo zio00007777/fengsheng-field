@@ -1,12 +1,14 @@
 import { db, json } from "../_lib";
 
 const fallbackQuestions = [
-  { id: "support-watch", side: "support", question: "你会持续关注时代峰峻吗？", options: ["一直关注", "偶尔关注", "今天开始关注"] },
-  { id: "support-reason", side: "support", question: "你为什么选择支持？", options: ["喜欢艺人", "认可成长", "想为喜欢应援"] },
-  { id: "support-action", side: "support", question: "现在你愿意做什么？", options: ["点亮应援棒", "送出特效礼物", "留下支持值"] },
-  { id: "against-management", side: "against", question: "你反对时代峰峻的主要原因是？", options: ["管理方式", "资源分配", "沟通方式"] },
-  { id: "against-experience", side: "against", question: "哪种经历让你决定反对？", options: ["长期不满", "看到相关事件", "对运营失望"] },
-  { id: "against-action", side: "against", question: "现在你想留下哪种反对声音？", options: ["明确反对", "记录理由", "让更多人看到"] },
+  { id: "support-favorite-group", side: "support", question: "你最喜欢时代峰峻旗下哪一组？", options: ["TFBOYS", "时代少年团", "TF家族练习生"] },
+  { id: "support-favorite-member", side: "support", question: "你最喜欢时代少年团哪位成员？", options: ["马嘉祺", "丁程鑫", "宋亚轩", "刘耀文", "张真源", "严浩翔", "贺峻霖"] },
+  { id: "support-tnt-debut", side: "support", question: "时代少年团正式出道是哪一年？", options: ["2018", "2019", "2020"] },
+  { id: "support-tfboys-debut", side: "support", question: "TFBOYS 正式出道是哪一年？", options: ["2012", "2013", "2014"] },
+  { id: "against-management", side: "against", question: "你最反感时代峰峻哪个环节？", options: ["艺人管理", "资源分配", "粉丝沟通"] },
+  { id: "against-focus", side: "against", question: "哪类问题最影响你对公司的判断？", options: ["行程与休息", "舞台与制作", "公开回应"] },
+  { id: "against-timeline", side: "against", question: "你是从哪个阶段开始形成反对态度？", options: ["TFBOYS 时期", "时代少年团时期", "最近的事件"] },
+  { id: "against-action", side: "against", question: "你希望留下哪种有依据的反对意见？", options: ["记录事实", "指出管理问题", "要求公开回应"] },
 ];
 
 export async function GET() {
