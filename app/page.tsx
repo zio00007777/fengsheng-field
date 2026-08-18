@@ -8,10 +8,10 @@ type Quiz = { id: string; question: string; options: string[] };
 
 const quizSets: Record<Side, Quiz[]> = {
   support: [
-    { id: "tf5-member", question: "你最想为 TF 五代哪位公开练习生发声？", options: ["吕政熙", "高铭阳", "智恩涵", "沈子航", "朱映宸", "刘瀚辰"] },
-    { id: "tf5-focus", question: "你最关注 TF 五代哪类公开物料？", options: ["声乐练习日志", "舞蹈考核片段", "训练日常记录", "家族舞台"] },
-    { id: "tf5-status", question: "TF 五代当前更接近哪种状态？", options: ["公开练习生阶段", "已经正式出道", "已有固定出道团"] },
-    { id: "tf5-signal", question: "如果为 TF 五代增加一条现场信号，你会选？", options: ["让更多人看见舞台", "记录每次成长", "要求被认真对待"] },
+    { id: "tf5-member", question: "你最关注 TF 五代哪位公开练习生？", options: ["吕政熙", "高铭阳", "智恩涵", "沈子航", "朱映宸", "刘瀚辰"] },
+    { id: "tf5-focus", question: "哪类公开物料最能让你看见成员成长？", options: ["声乐练习日志", "舞蹈考核片段", "训练日常记录", "家族舞台"] },
+    { id: "tf5-status", question: "按照目前公开信息，TF 五代处于哪一阶段？", options: ["公开练习生阶段", "已经正式出道", "已有固定出道团"] },
+    { id: "tf5-signal", question: "你最希望下一次公开内容优先呈现什么？", options: ["更多完整舞台", "更连续的成长记录", "更清晰的出道规划"] },
   ],
   against: [
     { id: "management", question: "你最反感时代峰峻哪个管理环节？", options: ["资源安排", "艺人管理", "粉丝沟通", "公开回应"] },
@@ -72,10 +72,10 @@ export default function Home() {
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      setVisualNudge((current) => ({ support: current.support + Math.floor(42 + Math.random() * 195), against: current.against + Math.floor(26 + Math.random() * 132) }));
+      setVisualNudge((current) => ({ support: current.support + Math.floor(160 + Math.random() * 560), against: current.against + Math.floor(110 + Math.random() * 430) }));
       setSignalPulse(true);
-      window.setTimeout(() => setSignalPulse(false), 360);
-    }, 640);
+      window.setTimeout(() => setSignalPulse(false), 220);
+    }, 420);
     return () => window.clearInterval(timer);
   }, []);
 
@@ -147,24 +147,53 @@ export default function Home() {
   }
 
   return (
-    <main className={`zine-site arena-site ${side === "support" ? "zine-support" : "zine-against"}`}>
-      <header className="zine-masthead"><button className="zine-logo" onClick={() => setPhase("choose")}><b>FJ</b><span><strong>峰声</strong><small>现场对决 / ARENA LIVE</small></span></button><div className="zine-ticker"><i /> LIVE <span>现场声量每 0.6 秒刷新</span></div><a href="/admin">后台 ↗</a></header>
+    <main className={`signal-room ${side === "support" ? "support-room" : "against-room"}`}>
+      <header className="signal-header">
+        <button className="signal-brand" onClick={() => setPhase("choose")}><b>FJ</b><span>立场现场 / SIGNAL ROOM</span></button>
+        <div className="signal-live"><i />LIVE <span>每 0.6 秒更新一次</span></div>
+        <a href="/admin">后台</a>
+      </header>
 
-      <section className="zine-cover"><div className="cover-sticker">MATCH 001<br /><b>TWO SIDES ONLY</b></div><div className="cover-copy"><span>时代峰峻现场对决 / MATCHDAY</span><h1>你站哪边？<br /><em>现在进场。</em></h1><p>不做中立观众。选择一个阵营，回答四个问题，进入你的应援席。</p></div><div className={`cover-total ${signalPulse ? "sticker-pulse" : ""}`}><small>LIVE SCOREBOARD / TOTAL</small><strong>{number(total)}</strong><div><i style={{ width: `${againstPercent}%` }} /><b style={{ width: `${supportPercent}%` }} /></div><span>反对 {againstPercent}% <em>支持 {supportPercent}%</em></span></div></section>
+      <section className="tension-hero">
+        <div className="hero-heading"><span>FIELD 001 / TWO SIDES ONLY</span><h1>现在，<em>站哪边？</em></h1><p>一个选择，四步确认。让你支持的声音先被看见。</p></div>
+        <div className="battle-grid">
+          <article className="side-panel panel-against">
+            <div className="panel-top"><span>01 / AGAINST</span><b>反对方</b></div>
+            <h2>反对<br /><strong>时代峰峻</strong></h2>
+            <p>不认同，就把具体理由留下。拒绝人身攻击，只让可核实的意见进入现场。</p>
+            <div className="panel-score"><small>当前现场声量</small><strong>{number(displayAgainstScore)}</strong><i>{againstPercent}%</i></div>
+            <button onClick={() => selectSide("against")}>进入反对方 <b>→</b></button>
+          </article>
+          <div className="split-signal"><span>LIVE</span><b>VS</b><i /><small>选择<br />马上开始</small></div>
+          <article className="side-panel panel-support">
+            <div className="panel-top"><span>02 / SUPPORT</span><b>支持方</b></div>
+            <h2>支持<br /><strong>TF 五代</strong></h2>
+            <p>为公开练习生的每次训练、每个舞台留下支持，让成长有被看见的信号。</p>
+            <div className="panel-score"><small>当前现场声量</small><strong>{number(displaySupportScore)}</strong><i>{supportPercent}%</i></div>
+            <button onClick={() => selectSide("support")}>进入支持方 <b>→</b></button>
+          </article>
+        </div>
+        <div className="hero-footer"><span><b>4</b> 道问题 · <b>1</b> 次选择 · <b>0</b> 个第三选项</span><b>实时信号持续滚动</b></div>
+      </section>
 
-      <section className="poster-wall"><article className="poster poster-support"><div className="poster-tape">TEAM / 02</div><header><span>TF 五代应援席</span><b>为成长加油</b></header><h2>支持<br /><strong>TF 五代</strong></h2><p>为公开练习生的训练、舞台和每一次成长，留下明确的支持。</p><div className="member-stickers"><span>吕政熙</span><span>高铭阳</span><span>智恩涵</span><span>沈子航</span><span>朱映宸</span><span>刘瀚辰</span></div><div className="poster-bottom"><div><small>现场支持声量</small><strong>{number(displaySupportScore)}</strong></div><button onClick={() => selectSide("support")}>进入 TF 五代应援席 <b>↗</b></button></div></article><div className="tear-spine"><span>VS</span><i /><small>中央<br />对决舞台</small><b>LIVE<br />0.6s</b></div><article className="poster poster-against"><div className="poster-tape">TEAM / 01</div><header><span>反对方看台</span><b>只谈具体问题</b></header><h2>反对<br /><strong>时代峰峻</strong></h2><p>不认同管理方式，就把可核实的理由说出来，让意见进入现场。</p><div className="reason-stickers"><span>资源安排？</span><span>艺人管理？</span><span>粉丝沟通？</span><span>公开回应？</span></div><div className="poster-bottom"><div><small>现场反对声量</small><strong>{number(displayAgainstScore)}</strong></div><button onClick={() => selectSide("against")}>进入反对方看台 <b>↗</b></button></div></article></section>
+      <section className={`live-board ${signalPulse ? "board-pulse" : ""}`}>
+        <div className="board-title"><span>LIVE SCOREBOARD</span><h2>现场正在偏向哪边？</h2><p>数字持续变化，用来展示当前现场气氛，不代表真实统计。</p></div>
+        <div className="board-side board-against"><small>反对时代峰峻</small><strong>{number(displayAgainstScore)}</strong><i>{againstPercent}%</i></div>
+        <div className="board-vs">VS</div>
+        <div className="board-side board-support"><small>支持 TF 五代</small><strong>{number(displaySupportScore)}</strong><i>{supportPercent}%</i></div>
+        <div className="board-track"><span style={{ width: `${againstPercent}%` }} /><b style={{ width: `${supportPercent}%` }} /></div>
+      </section>
 
-      <section className="wall-ledger"><div className="ledger-caption"><span>现场数据 / LIVE SCOREBOARD</span><h2>看台声量正在变化</h2><p>数字是视觉化现场信号，累计以服务端记录为准。</p></div><div className="ledger-notes"><div className="ledger-note ledger-note-red"><b>反对</b><strong>{number(displayAgainstScore)}</strong><span>条现场意见</span></div><div className="ledger-note ledger-note-blue"><b>支持 TF 五代</b><strong>{number(displaySupportScore)}</strong><span>个应援信号</span></div></div></section>
+      {phase === "choose" && <section className="guide-panel"><div><span>STEP 00 / CHOOSE</span><h2>先选方向，<br /><b>再让声音变大。</b></h2></div><div className="guide-copy"><p>支持 TF 五代，进入粉丝知识与应援动作；反对时代峰峻，进入理由选择与意见记录。</p><small>两边都从同一个现场开始，选择后不可跳过引导。</small></div><div className="guide-actions"><button className="guide-against" onClick={() => selectSide("against")}><span>我反对时代峰峻</span><b>01 →</b></button><button className="guide-support" onClick={() => selectSide("support")}><span>我支持 TF 五代</span><b>02 →</b></button></div></section>}
 
-      {phase === "choose" && <section className="zine-entry"><div className="entry-number">01</div><div><span>入场检录 / CHOOSE YOUR SIDE</span><h2>先选一个阵营，<br /><b>再进入现场。</b></h2></div><div className="entry-copy"><p>支持 TF 五代：回答成员、物料和成长问题。反对时代峰峻：选择管理问题、事实和回应方向。</p><small>第三选项不存在。下面两座看台，选一座。</small></div><div className="entry-arrow">↓<br /><span>开始检录</span></div></section>}
+      {phase === "quiz" && side && question && <section className="quiz-panel"><aside><span>STEP {String(questionIndex + 1).padStart(2, "0")} / 04</span><strong>{side === "support" ? "TF 五代" : "反对现场"}</strong><p>选一个最接近你的答案，确认后进入下一题。</p></aside><div className="quiz-main"><div className="quiz-progress"><i style={{ width: `${((questionIndex + 1) / questions.length) * 100}%` }} /></div><span className="quiz-kicker">{side === "support" ? "SUPPORT CHECK / TF5" : "AGAINST CHECK / OPINION"}</span><h2>{question.question}</h2><div className="quiz-options">{question.options.map((option) => <button className={selectedAnswer === option ? "selected" : ""} key={option} onClick={() => setSelectedAnswer(option)}><span>{selectedAnswer === option ? "●" : "○"}</span>{option}<b>↗</b></button>)}</div><button className="quiz-confirm" disabled={!selectedAnswer} onClick={answerQuestion}>确认答案，继续 <b>→</b></button></div></section>}
 
-      {phase === "quiz" && side && question && <section className={`zine-sheet ${side === "support" ? "sheet-support" : "sheet-against"}`}><div className="sheet-margin"><span>ARENA CHECK</span><strong>0{questionIndex + 1}</strong><small>/04</small></div><div className="sheet-content"><header><span>{side === "support" ? "TF 五代入场问答" : "时代峰峻意见问答"}</span><b>请选择你的答案</b></header><div className="sheet-progress"><i style={{ width: `${((questionIndex + 1) / questions.length) * 100}%` }} /></div><h2>{question.question}</h2><div className="sticker-options">{question.options.map((option, index) => <button className={selectedAnswer === option ? "selected" : ""} key={option} onClick={() => setSelectedAnswer(option)}><span>{String(index + 1).padStart(2, "0")}</span><b>{option}</b><i>选择 ↗</i></button>)}</div><button className="sheet-confirm" disabled={!selectedAnswer} onClick={answerQuestion}>确认答案，进入下一题 <b>→</b></button></div></section>}
+      {phase === "score" && side && <section className="result-panel"><span>STEP 05 / YOU ARE IN</span><h2>你已经站在<br /><b>{activeLabel}</b>。</h2><p>现场信号已更新。现在进入这一边，完成你的第一步动作。</p><div className="result-numbers"><div><small>反对</small><strong>{number(displayAgainstScore)}</strong></div><b>VS</b><div><small>支持 TF 五代</small><strong>{number(displaySupportScore)}</strong></div></div><button onClick={() => setPhase("arena")}>进入{activeLabel} <b>→</b></button></section>}
 
-      {phase === "score" && side && <section className="zine-result"><div className="result-scribble">已确认<br />CONFIRMED</div><span>入场问答完成 / STEP 05</span><h2>你已进入<br /><b>{activeLabel}</b></h2><p>你的立场已经进入现场。再做一个动作，让这条声音继续增加。</p><div className="result-strip"><span>反对 {number(displayAgainstScore)}</span><i /><span>支持 {number(displaySupportScore)}</span></div><button onClick={() => setPhase("arena")}>打开我的应援席 <b>↗</b></button></section>}
+      {phase === "arena" && side && <section className="action-panel"><div className="action-heading"><span>YOUR SIDE / {side === "support" ? "02" : "01"}</span><h2>{activeLabel}</h2><p>{side === "support" ? "现在就为 TF 五代留下一个可见动作。" : "现在就把反对理由留下。"}</p></div>{side === "support" ? <div className="support-actions"><div className="tf5-card"><div className="tf5-mark">TF<br /><b>5</b></div><div><span>SUPPORT SIGNAL / HOURLY</span><h3>TF 五代应援棒 <b>+1</b></h3><p>{cooldown > 0 ? <>下一根可领取：<Countdown seconds={cooldown} /></> : "每小时可点亮一根"}</p></div><button disabled={cooldown > 0} onClick={claimStick}>{cooldown > 0 ? <Countdown seconds={cooldown} /> : "点亮"}</button></div><div className="action-label"><span>特效礼物 / 选择声量档位</span><small>价格与支持值一一对应</small></div><div className="gift-actions">{gifts.map((item) => <button className="gift-card" key={item.id} onClick={() => setGift(item)}><span className="gift-card-glow" /><span className="gift-card-icon"><img src={item.image} alt="" /></span><strong>{item.name}</strong><small>¥{item.price} · +{item.value}</small><em>OPEN ↗</em></button>)}</div></div> : <div className="against-actions"><span className="action-label">选择你最主要的反对理由</span><div className="reason-grid">{quizSets.against[0].options.map((reason) => <button className={againstReason === reason ? "selected" : ""} key={reason} onClick={() => setAgainstReason(reason)}>{reason}<b>{againstReason === reason ? "✓" : "+"}</b></button>)}</div><button className="against-submit" disabled={!againstReason} onClick={sendAgainstReason}>留下这条反对声量 <b>→</b></button><p>只记录理由，不开放辱骂、人肉或骚扰内容。</p></div>}</section>}
 
-      {phase === "arena" && side && <section className={`zine-action ${side === "support" ? "action-support" : "action-against"}`}><div className="action-title"><span>你的现场动作 / YOUR ACTION</span><h2>{activeLabel}</h2><p>{side === "support" ? "选择一个应援动作，为 TF 五代增加现场支持。" : "选一个最具体的反对方向，把问题说清楚。"}</p></div>{side === "support" ? <div className="action-sheet"><div className="hour-sticker"><div className="tf5-mark">TF<br /><b>5</b></div><div><span>HOURLY SUPPORT SIGNAL</span><h3>点亮 TF 五代应援棒 <b>+1</b></h3><small>{cooldown > 0 ? <>下一次可领取：<Countdown seconds={cooldown} /></> : "每小时可领取一次"}</small></div><button disabled={cooldown > 0} onClick={claimStick}>{cooldown > 0 ? <Countdown seconds={cooldown} /> : "应援"}</button></div><div className="gift-wall-head"><span>现场特效礼物 / BOOST PACK</span><small>价格档位对应不同应援值</small></div><div className="gift-actions">{gifts.map((item) => <button className="gift-card" key={item.id} onClick={() => setGift(item)}><span className="gift-card-glow" /><span className="gift-card-icon"><img src={item.image} alt="" /></span><strong>{item.name}</strong><small>¥{item.price} · +{item.value}</small><em>送出 ↗</em></button>)}</div></div> : <div className="action-sheet against-sheet"><span className="reason-label">选择一个反对方向</span><div className="reason-grid">{quizSets.against[0].options.map((reason) => <button className={againstReason === reason ? "selected" : ""} key={reason} onClick={() => setAgainstReason(reason)}>{reason}<b>{againstReason === reason ? "✓" : "+"}</b></button>)}</div><button className="against-submit" disabled={!againstReason} onClick={sendAgainstReason}>发出这条反对意见 <b>↗</b></button><p>只记录理由，不开放辱骂、人肉或骚扰内容。</p></div>}</section>}
+      <footer className="signal-footer"><span>FJ / SIGNAL ROOM</span><span>支持 TF 五代 · 反对时代峰峻</span><a href="/admin">ADMIN →</a></footer>
 
-      <footer className="zine-footer"><span>FJ / ARENA LIVE</span><span>支持 TF 五代 · 反对时代峰峻</span><a href="/admin">ADMIN ↗</a></footer>
       {gift && <div className="gift-modal-backdrop"><div className="gift-modal"><button className="close-modal" onClick={() => setGift(null)}>×</button><span className="modal-kicker">SECURE PAYMENT GATE / TF5</span><div className="gift-modal-main"><img src={gift.image} alt="" /><div><h2>{gift.name}</h2><p>支付 ¥{gift.price}，支付确认后增加 TF 五代支持值 +{gift.value}</p></div></div><div className="secure-copy"><b>安全结算说明</b><span>订单、金额和应援值只在服务端生成；当前未配置商户证书，不会产生扣款。</span></div><button className="gift-pay" onClick={buyGift}>获取安全支付链接 <b>↗</b></button></div></div>}
       {notice && <div className="battle-toast">{notice}</div>}
     </main>
