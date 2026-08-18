@@ -168,7 +168,8 @@ export default function Home() {
           <article className="side-panel panel-support">
             <div className="panel-top"><span>02 / SUPPORT</span><b>支持方</b></div>
             <h2>支持<br /><strong>TF 五代</strong></h2>
-            <p>为公开练习生的每次训练、每个舞台留下支持，让成长有被看见的信号。</p>
+            <p>为公开练习生的训练和舞台留下支持，让成长有被看见的信号。</p>
+            <div className="support-route"><span>支持路线</span><b>答 4 题</b><i>→</i><b>领应援棒</b><i>→</i><b>选礼物</b></div>
             <div className="panel-score"><small>当前现场声量</small><strong>{number(displaySupportScore)}</strong><i>{supportPercent}%</i></div>
             <button onClick={() => selectSide("support")}>进入支持方 <b>→</b></button>
           </article>
@@ -184,7 +185,7 @@ export default function Home() {
         <div className="board-track"><span style={{ width: `${againstPercent}%` }} /><b style={{ width: `${supportPercent}%` }} /></div>
       </section>
 
-      {phase === "choose" && <section className="guide-panel"><div><span>STEP 00 / CHOOSE</span><h2>先选方向，<br /><b>再让声音变大。</b></h2></div><div className="guide-copy"><p>支持 TF 五代，进入粉丝知识与应援动作；反对时代峰峻，进入理由选择与意见记录。</p><small>两边都从同一个现场开始，选择后不可跳过引导。</small></div><div className="guide-actions"><button className="guide-against" onClick={() => selectSide("against")}><span>我反对时代峰峻</span><b>01 →</b></button><button className="guide-support" onClick={() => selectSide("support")}><span>我支持 TF 五代</span><b>02 →</b></button></div></section>}
+      {phase === "choose" && <section className="guide-panel"><div><span>STEP 00 / CHOOSE</span><h2>先选方向，<br /><b>再让声音变大。</b></h2></div><div className="guide-copy"><p>支持 TF 五代：完成 4 道问答后，立即进入应援区，先领应援棒，再选特效礼物。</p><small>反对方进入理由选择；两边都从同一个现场开始。</small></div><div className="guide-actions"><button className="guide-against" onClick={() => selectSide("against")}><span>我反对时代峰峻</span><b>01 →</b></button><button className="guide-support" onClick={() => selectSide("support")}><span>我支持 TF 五代<small>4题 → 应援棒 → 礼物</small></span><b>02 →</b></button></div></section>}
 
       {phase === "quiz" && side && question && <section className="quiz-panel"><aside><span>STEP {String(questionIndex + 1).padStart(2, "0")} / 04</span><strong>{side === "support" ? "TF 五代" : "反对现场"}</strong><p>选一个最接近你的答案，确认后进入下一题。</p></aside><div className="quiz-main"><div className="quiz-progress"><i style={{ width: `${((questionIndex + 1) / questions.length) * 100}%` }} /></div><span className="quiz-kicker">{side === "support" ? "SUPPORT CHECK / TF5" : "AGAINST CHECK / OPINION"}</span><h2>{question.question}</h2><div className="quiz-options">{question.options.map((option) => <button className={selectedAnswer === option ? "selected" : ""} key={option} onClick={() => setSelectedAnswer(option)}><span>{selectedAnswer === option ? "●" : "○"}</span>{option}<b>↗</b></button>)}</div><button className="quiz-confirm" disabled={!selectedAnswer} onClick={answerQuestion}>确认答案，继续 <b>→</b></button></div></section>}
 

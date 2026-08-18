@@ -40,3 +40,29 @@
 .board-pulse .board-against strong { color:var(--red-deep); }
 .board-pulse .board-support strong { color:var(--blue); }
 @media(max-width:850px){ .side-panel h2 { font-size:clamp(56px,14vw,72px); }.board-side strong { font-size:clamp(42px,11vw,58px); } }
+
+/* Compact mobile-first pass: keep the conflict legible and make the support route explicit. */
+.signal-header { height:52px; }
+.tension-hero { padding:28px 4vw 15px; }
+.hero-heading { margin-bottom:19px; }
+.hero-heading h1 { font-size:clamp(42px,5.5vw,62px); }
+.battle-grid { grid-template-columns:minmax(0,1fr) 58px minmax(0,1fr); }
+.side-panel { min-height:350px; padding:20px 23px 22px; }
+.side-panel h2 { margin:36px 0 12px; font-size:clamp(54px,6vw,72px); }
+.side-panel>p { font-size:11px; line-height:1.55; }
+.panel-score { padding-top:12px; }
+.panel-score strong { font-size:clamp(38px,4vw,50px); }
+.support-route { display:flex; align-items:center; flex-wrap:wrap; gap:5px; margin-top:18px; color:rgba(245,241,233,.82); font:8px var(--mono); }
+.support-route span { width:100%; margin-bottom:2px; color:var(--paper); font-weight:700; }
+.support-route b { padding:4px 5px; border:1px solid rgba(245,241,233,.65); font-weight:500; }
+.support-route i { font-style:normal; opacity:.7; }
+.live-board { padding:17px 24px 15px; gap:15px; }
+.board-title h2 { font-size:22px; }
+.board-side strong { font-size:clamp(42px,4.5vw,58px); }
+.guide-panel { padding:32px 5vw; grid-template-columns:1fr .95fr 1.15fr; gap:28px; }
+.guide-panel h2 { font-size:clamp(40px,4.5vw,48px); }
+.guide-copy p { font-size:11px; line-height:1.6; }
+.guide-actions button { padding:13px 15px; }
+.guide-support span { display:flex; flex-direction:column; gap:3px; }
+.guide-support span small { font:8px var(--mono); font-weight:500; opacity:.75; }
+@media(max-width:850px){ .tension-hero { padding:25px 5vw 14px; }.battle-grid { grid-template-columns:1fr; }.side-panel { min-height:315px; padding:18px 20px 20px; }.side-panel h2 { margin:30px 0 10px; font-size:clamp(52px,14vw,68px); }.support-route { margin-top:14px; }.live-board { padding:15px 6vw 14px; }.guide-panel { padding:30px 8vw; gap:16px; }.guide-panel h2 { font-size:39px; } }
