@@ -133,7 +133,7 @@ Supabase 配置完成后，`/api/orders` 会创建 pending 订单并返回对应
 - `b950179`：迁移完整运行时到 Netlify
 - `c5e620e`：持久化应援棒冷却状态
 
-当前本地代码和 GitHub `main` 以 `3f625f7` 为基线。原 GitHub `gh-pages` 静态版本未覆盖。
+当前本地代码和 GitHub `main` 以 `d4f117c` 为基线。原 GitHub `gh-pages` 静态版本未覆盖。
 
 ## 10. 重要注意事项
 
