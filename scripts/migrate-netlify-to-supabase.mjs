@@ -8,8 +8,10 @@ const netlifySiteId = process.env.NETLIFY_SITE_ID;
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SERVICE_KEY;
 
-if (!netlifyToken || !netlifySiteId || !supabaseUrl || !supabaseKey) {
-  console.error("需要 NETLIFY_AUTH_TOKEN、NETLIFY_SITE_ID、SUPABASE_URL 和 SUPABASE_SERVICE_ROLE_KEY");
+if (!netlifyToken || !netlifySiteId || (apply && (!supabaseUrl || !supabaseKey))) {
+  console.error(apply
+    ? "正式迁移需要 NETLIFY_AUTH_TOKEN、NETLIFY_SITE_ID、SUPABASE_URL 和 SUPABASE_SERVICE_ROLE_KEY"
+    : "预览需要 NETLIFY_AUTH_TOKEN 和 NETLIFY_SITE_ID；预览不会写入 Supabase");
   process.exit(1);
 }
 
@@ -19,9 +21,11 @@ const source = getStore({
   token: netlifyToken,
   consistency: "strong",
 });
-const target = createClient(supabaseUrl, supabaseKey, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
+const target = apply
+  ? createClient(supabaseUrl, supabaseKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+  : null;
 
 async function readJson(key) {
   return source.get(key, { type: "json", consistency: "strong" });
@@ -50,7 +54,7 @@ function iso(value) {
 }
 
 async function upsert(table, rows, onConflict) {
-  if (!rows.length || !apply) return;
+  if (!rows.length || !apply || !target) return;
   const { error } = await target.from(table).upsert(rows, { onConflict, ignoreDuplicates: true });
   if (error) throw error;
 }
