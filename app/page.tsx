@@ -82,7 +82,6 @@ export default function Home() {
   const [signalPulse, setSignalPulse] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [stickUnavailable, setStickUnavailable] = useState(false);
-  const [gift, setGift] = useState<Gift | null>(null);
   const [againstReason, setAgainstReason] = useState("");
   const [notice, setNotice] = useState("");
   const [paymentModal, setPaymentModal] = useState<{ orderId: string; qrcodeUrl: string; giftId: string; giftName: string; price: number; timestamp: number } | null>(null);
@@ -268,9 +267,7 @@ export default function Home() {
     fetch("/api/side-selection", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ side: "against", reason: againstReason }) }).catch(() => undefined);
   }
 
-  function buyGift() {
-    if (!gift) return;
-    const selectedGift = gift;
+  function buyGift(selectedGift: Gift) {
     fetch("/api/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ giftId: selectedGift.id }) })
       .then(async (response) => ({ ok: response.ok, data: await response.json().catch(() => null) }))
       .then(({ ok, data }) => {
@@ -321,7 +318,6 @@ export default function Home() {
         sessionStorage.removeItem("fj_payment_returned");
         setPaymentReturnPrompt(false);
         setPaymentModal(null);
-        setGift(null);
       })
       .catch(() => {
         setPaymentConfirming(false);
@@ -375,11 +371,11 @@ export default function Home() {
 
       {phase === "quiz" && side && question && <section className="quiz-panel"><aside><span>STEP {String(questionIndex + 1).padStart(2, "0")} / 04</span><strong>{side === "support" ? "TF 五代" : "反对现场"}</strong><p>选一个最接近你的答案，确认后进入下一题。</p></aside><div className="quiz-main"><div className="quiz-progress"><i style={{ width: `${((questionIndex + 1) / questions.length) * 100}%` }} /></div><span className="quiz-kicker">{side === "support" ? "SUPPORT CHECK / TF5" : "AGAINST CHECK / OPINION"}</span><h2>{question.question}</h2><div className="quiz-options">{question.options.map((option) => <button className={selectedAnswer === option ? "selected" : ""} key={option} onClick={() => setSelectedAnswer(option)}><span>{selectedAnswer === option ? "●" : "○"}</span>{option}<b>↗</b></button>)}</div><button className="quiz-confirm" disabled={!selectedAnswer} onClick={answerQuestion}>确认答案，继续 <b>→</b></button></div></section>}
 
-      {phase === "arena" && side && <section className="action-panel"><div className="action-heading"><span>YOUR SIDE / {side === "support" ? "02" : "01"}</span><h2>{activeLabel}</h2><p>{side === "support" ? "四题确认完成，直接开始应援：先送出高支持力礼物，再领取每小时应援棒。" : "现在就把反对理由留下。"}</p></div>{side === "support" ? <div className="support-actions"><div className="gift-callout"><b>第一应援动作</b><span>送出特效礼物，增加对应支持值</span></div><div className="action-label"><span>特效礼物 / 立即送出</span><small>高价礼物 = 更高支持力</small></div><div className="gift-actions">{gifts.map((item) => <button className={`gift-card ${item.value >= 100 ? "gift-card-high" : ""}`} key={item.id} onClick={() => setGift(item)}><span className="gift-card-glow" /><span className="gift-card-icon"><img src={item.image} alt="" /></span><strong>{item.name}</strong><b className="gift-card-power">+{item.value}<span>支持力</span></b><small>¥{item.price} / 送出即计入</small><em>送出 ↗</em></button>)}</div><div className="tf5-card"><div className="tf5-mark">TF<br /><b>5</b></div><div><span>SUPPORT SIGNAL / HOURLY</span><h3>TF 五代应援棒 <b>+1</b></h3><p>{cooldown > 0 ? <>下一根可领取：<Countdown seconds={cooldown} /></> : "每小时可点亮一根"}</p></div><button disabled={cooldown > 0} onClick={claimStick}>{cooldown > 0 ? <Countdown seconds={cooldown} /> : "点亮"}</button></div></div> : <div className="against-actions"><span className="action-label">选择你最主要的反对理由</span><div className="reason-grid">{quizSets.against[0].options.map((reason) => <button className={againstReason === reason ? "selected" : ""} key={reason} onClick={() => setAgainstReason(reason)}>{reason}<b>{againstReason === reason ? "✓" : "+"}</b></button>)}</div><button className="against-submit" disabled={!againstReason} onClick={sendAgainstReason}>留下这条反对声量 <b>→</b></button><p>只记录理由，不开放辱骂、人肉或骚扰内容。</p></div>}</section>}
+      {phase === "arena" && side && <section className="action-panel"><div className="action-heading"><span>YOUR SIDE / {side === "support" ? "02" : "01"}</span><h2>{activeLabel}</h2><p>{side === "support" ? "四题确认完成，直接开始应援：先送出高支持力礼物，再领取每小时应援棒。" : "现在就把反对理由留下。"}</p></div>{side === "support" ? <div className="support-actions"><div className="gift-callout"><b>第一应援动作</b><span>送出特效礼物，增加对应支持值</span></div><div className="action-label"><span>特效礼物 / 立即送出</span><small>高价礼物 = 更高支持力</small></div><div className="gift-actions">{gifts.map((item) => <button className={`gift-card ${item.value >= 100 ? "gift-card-high" : ""}`} key={item.id} onClick={() => buyGift(item)}><span className="gift-card-glow" /><span className="gift-card-icon"><img src={item.image} alt="" /></span><strong>{item.name}</strong><b className="gift-card-power">+{item.value}<span>支持力</span></b><small>¥{item.price} / 点击进入收款图</small><em>去支付 ↗</em></button>)}</div><div className="tf5-card"><div className="tf5-mark">TF<br /><b>5</b></div><div><span>SUPPORT SIGNAL / HOURLY</span><h3>TF 五代应援棒 <b>+1</b></h3><p>{cooldown > 0 ? <>下一根可领取：<Countdown seconds={cooldown} /></> : "每小时可点亮一根"}</p></div><button disabled={cooldown > 0} onClick={claimStick}>{cooldown > 0 ? <Countdown seconds={cooldown} /> : "点亮"}</button></div></div> : <div className="against-actions"><span className="action-label">选择你最主要的反对理由</span><div className="reason-grid">{quizSets.against[0].options.map((reason) => <button className={againstReason === reason ? "selected" : ""} key={reason} onClick={() => setAgainstReason(reason)}>{reason}<b>{againstReason === reason ? "✓" : "+"}</b></button>)}</div><button className="against-submit" disabled={!againstReason} onClick={sendAgainstReason}>留下这条反对声量 <b>→</b></button><p>只记录理由，不开放辱骂、人肉或骚扰内容。</p></div>}</section>}
 
       <footer className="signal-footer"><span>FJ / SIGNAL ROOM</span><span>支持 TF 五代 · 反对时代峰峻</span><a href="/admin">ADMIN →</a></footer>
 
-      {gift && <div className="gift-modal-backdrop"><div className="gift-modal"><button className="close-modal" onClick={() => setGift(null)}>×</button><span className="modal-kicker">ALIPAY QR CODE / TF5</span><div className="gift-modal-main"><img src={gift.image} alt="" /><div><h2>{gift.name}</h2><p>支付 ¥{gift.price}，确认后增加 TF 五代支持值 +{gift.value}</p></div></div><button className="gift-pay" onClick={buyGift}>去支付 <b>↗</b></button></div></div>}
+
       {paymentReturnPrompt && paymentModal && <div className="payment-return-backdrop"><div className="payment-return-prompt" role="dialog" aria-modal="true" aria-labelledby="payment-return-title"><span className="modal-kicker">RETURN CHECK / {paymentModal.giftName}</span><h2 id="payment-return-title">是否完成支付？</h2><p>你已从支付宝收款页返回。完成支付后，支持值将在确认时进入现场声量。</p>{confirmWaitSeconds > 0 && <strong className="payment-return-wait">支付后 {confirmWaitSeconds} 秒可确认</strong>}<div className="payment-return-actions"><button className="payment-not-done" onClick={dismissPaymentReturn}>还没有</button><button className="payment-done" disabled={confirmWaitSeconds > 0 || paymentConfirming} onClick={confirmPayment}>{paymentConfirming ? "确认中..." : confirmWaitSeconds > 0 ? `已完成，等待 ${confirmWaitSeconds} 秒` : "已完成支付，确认"}</button></div></div></div>}
       {notice && <div className="battle-toast">{notice}</div>}
     </main>
