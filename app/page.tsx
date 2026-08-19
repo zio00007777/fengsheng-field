@@ -32,6 +32,32 @@ const gifts: Gift[] = [
 ];
 
 const initialScore = { support: 2000, against: 8000 };
+const liveSignalKey = "fj_live_signal";
+const livePhaseMs = 4 * 60 * 60 * 1000;
+const livePhases = [
+  { against: 72000, support: 18000 },
+  { against: 68000, support: 17000 },
+  { against: 76000, support: 19000 },
+  { against: 64000, support: 16000 },
+  { against: 74000, support: 18500 },
+  { against: 70000, support: 17500 },
+];
+
+type LiveSignal = { against: number; support: number; supportBoost: number; phase: number; updatedAt: number };
+
+function liveSignalAt(now = Date.now(), supportBoost = 0): LiveSignal {
+  const phase = Math.floor(now / livePhaseMs) % livePhases.length;
+  const tick = Math.floor(now / 420);
+  const wave = Math.round(Math.sin(tick * 0.41 + phase) * 120 + Math.sin(tick * 0.13) * 70);
+  const base = livePhases[phase];
+  return {
+    phase,
+    against: Math.max(0, Math.min(99999, base.against + wave)),
+    support: Math.max(0, Math.min(99999, base.support + Math.round(wave * 0.25) + supportBoost)),
+    supportBoost,
+    updatedAt: now,
+  };
+}
 
 function number(value: number) {
   return new Intl.NumberFormat("zh-CN").format(value);
@@ -51,7 +77,7 @@ export default function Home() {
   const [answers, setAnswers] = useState<string[]>([]);
   const [supportScore, setSupportScore] = useState(initialScore.support);
   const [againstScore, setAgainstScore] = useState(initialScore.against);
-  const [visualNudge, setVisualNudge] = useState({ support: 0, against: 0 });
+  const [liveSignal, setLiveSignal] = useState<LiveSignal>(() => liveSignalAt());
   const [signalPulse, setSignalPulse] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [stickUnavailable, setStickUnavailable] = useState(false);
@@ -61,6 +87,7 @@ export default function Home() {
   const [paymentModal, setPaymentModal] = useState<{ orderId: string; qrcodeUrl: string; giftId: string; giftName: string; price: number; timestamp: number } | null>(null);
   const [paymentConfirming, setPaymentConfirming] = useState(false);
   const [confirmWaitSeconds, setConfirmWaitSeconds] = useState(0);
+  const [giftImpact, setGiftImpact] = useState<{ name: string; value: number } | null>(null);
 
   useEffect(() => {
     const saved = typeof window !== "undefined" ? localStorage.getItem("fj_session_state") : null;
@@ -83,8 +110,8 @@ export default function Home() {
   const questions = side ? quizSets[side] : [];
   const question = questions[questionIndex];
   const activeLabel = side === "support" ? "支持 TF 五代" : "反对时代峰峻";
-  const displaySupportScore = supportScore + visualNudge.support;
-  const displayAgainstScore = againstScore + visualNudge.against;
+  const displaySupportScore = liveSignal.support;
+  const displayAgainstScore = liveSignal.against;
   const total = displaySupportScore + displayAgainstScore;
   const supportPercent = Math.round((displaySupportScore / total) * 100);
   const againstPercent = 100 - supportPercent;
@@ -96,13 +123,32 @@ export default function Home() {
   }, [cooldown]);
 
   useEffect(() => {
+    const saved = window.localStorage.getItem(liveSignalKey);
+    let savedState: Partial<LiveSignal> = {};
+    try {
+      savedState = saved ? JSON.parse(saved) as Partial<LiveSignal> : {};
+    } catch { /* ignore malformed live signal state */ }
+    const savedBoost = Number(savedState.supportBoost) || 0;
+    setLiveSignal(liveSignalAt(Date.now(), savedBoost));
     const timer = window.setInterval(() => {
-      setVisualNudge((current) => ({ support: current.support + Math.floor(160 + Math.random() * 560), against: current.against + Math.floor(110 + Math.random() * 430) }));
+      setLiveSignal((current) => {
+        const next = liveSignalAt(Date.now(), current.supportBoost);
+        window.localStorage.setItem(liveSignalKey, JSON.stringify(next));
+        return next;
+      });
       setSignalPulse(true);
       window.setTimeout(() => setSignalPulse(false), 220);
     }, 420);
     return () => window.clearInterval(timer);
   }, []);
+
+  function bumpLiveSupport(value: number) {
+    setLiveSignal((current) => {
+      const next = liveSignalAt(Date.now(), current.supportBoost + value);
+      window.localStorage.setItem(liveSignalKey, JSON.stringify(next));
+      return next;
+    });
+  }
 
   useEffect(() => {
     fetch("/api/scoreboard").then((response) => response.ok ? response.json() : null).then((data) => {
@@ -169,7 +215,9 @@ export default function Home() {
       setNotice(response.status === 429 ? "本小时应援棒已领取" : "应援状态暂不可用，未发放应援棒");
       return;
     }
-    setSupportScore((current) => current + Number(data?.value ?? 1));
+    const value = Number(data?.value ?? 1);
+    setSupportScore((current) => current + value);
+    bumpLiveSupport(value);
     setCooldown(Math.max(0, Math.ceil((Number(data?.nextAt ?? Date.now() + 3600000) - Date.now()) / 1000)));
     setNotice("TF 五代应援信号已点亮，支持值 +1");
   }
@@ -226,8 +274,13 @@ export default function Home() {
           setNotice("确认支付失败，请重试");
           return;
         }
-        setSupportScore((current) => current + Number(data?.scoreValue ?? 0));
-        setNotice(`支持值 +${data?.scoreValue ?? 0}，感谢应援`);
+        const scoreValue = Number(data?.scoreValue ?? 0);
+        setSupportScore((current) => current + scoreValue);
+        bumpLiveSupport(scoreValue);
+        setGiftImpact({ name: paymentModal.giftName, value: scoreValue });
+        setSignalPulse(true);
+        window.setTimeout(() => setSignalPulse(false), 700);
+        setNotice(`支持值 +${scoreValue}，${paymentModal.giftName} 已进入现场声量`);
         setPaymentModal(null);
         setGift(null);
       })
@@ -264,6 +317,7 @@ export default function Home() {
 
       <section className={`live-board ${signalPulse ? "board-pulse" : ""}`}>
         <div className="board-title"><span>LIVE SCOREBOARD</span><h2>现场正在偏向哪边？</h2><p>数字持续变化，用来展示当前现场气氛，不代表真实统计。</p></div>
+        {giftImpact && <div className="gift-impact" role="status"><span>GIFT SIGNAL</span><strong>+{giftImpact.value}</strong><b>{giftImpact.name} 已推高支持声量</b></div>}
         <div className="board-side board-against"><small>反对时代峰峻</small><strong>{number(displayAgainstScore)}</strong><i>{againstPercent}%</i></div>
         <div className="board-vs">VS</div>
         <div className="board-side board-support"><small>支持 TF 五代</small><strong>{number(displaySupportScore)}</strong><i>{supportPercent}%</i></div>
@@ -278,7 +332,7 @@ export default function Home() {
 
       <footer className="signal-footer"><span>FJ / SIGNAL ROOM</span><span>支持 TF 五代 · 反对时代峰峻</span><a href="/admin">ADMIN →</a></footer>
 
-      {gift && <div className="gift-modal-backdrop"><div className="gift-modal"><button className="close-modal" onClick={() => setGift(null)}>×</button><span className="modal-kicker">SECURE PAYMENT GATE / TF5</span><div className="gift-modal-main"><img src={gift.image} alt="" /><div><h2>{gift.name}</h2><p>支付 ¥{gift.price}，支付确认后增加 TF 五代支持值 +{gift.value}</p></div></div><div className="secure-copy"><b>安全结算说明</b><span>订单、金额和应援值只在服务端生成；当前未配置商户证书，不会产生扣款。</span></div><button className="gift-pay" onClick={buyGift}>获取安全支付链接 <b>↗</b></button></div></div>}
+      {gift && <div className="gift-modal-backdrop"><div className="gift-modal"><button className="close-modal" onClick={() => setGift(null)}>×</button><span className="modal-kicker">ALIPAY QR CODE / TF5</span><div className="gift-modal-main"><img src={gift.image} alt="" /><div><h2>{gift.name}</h2><p>支付 ¥{gift.price}，确认后增加 TF 五代支持值 +{gift.value}</p></div></div><button className="gift-pay" onClick={buyGift}>去支付 <b>↗</b></button></div></div>}
       {paymentModal && <div className="gift-modal-backdrop"><div className="gift-modal"><button className="close-modal" onClick={() => setPaymentModal(null)}>×</button><span className="modal-kicker">ALIPAY QR CODE / {paymentModal.giftName}</span><div className="gift-modal-main"><div style={{ textAlign: "center" }}><img src={paymentModal.qrcodeUrl} alt="支付宝二维码" loading="lazy" style={{ maxWidth: "100%", borderRadius: "8px" }} /><div style={{ marginTop: "20px" }}><h2>{paymentModal.giftName}</h2><p>¥{paymentModal.price.toFixed(2)}</p></div></div></div><button className="gift-pay" onClick={() => window.open(paymentModal.qrcodeUrl, '_blank')}>去支付 ↗</button>{confirmWaitSeconds > 0 ? <div style={{ marginTop: "16px", textAlign: "center", fontSize: "14px", color: "#999" }}>支付后 {confirmWaitSeconds} 秒可确认</div> : <button className="gift-pay" style={{ marginTop: "12px" }} disabled={paymentConfirming} onClick={confirmPayment}>{paymentConfirming ? "确认中..." : "已支付，确认 ↗"}</button>}</div></div>}
       {notice && <div className="battle-toast">{notice}</div>}
     </main>
