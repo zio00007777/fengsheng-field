@@ -1,0 +1,7 @@
+# Server-only variables. Never expose SUPABASE_SERVICE_ROLE_KEY in browser code.
+SUPABASE_URL=https://rfntxtqvvfnliktugywk.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=
+ADMIN_TOKEN=
+
+# Current manual QR flow. Replace only after a provider callback is implemented.
+PAYMENT_PROVIDER=alipay_qrcode_manual

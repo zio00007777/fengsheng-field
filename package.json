@@ -7,14 +7,19 @@
   },
   "scripts": {
     "dev": "vinext dev",
-    "build": "NITRO_PRESET=netlify vite build",
+    "build": "vite build",
+    "build:netlify": "NITRO_PRESET=netlify vite build",
+    "build:node": "NITRO_PRESET=node-server vite build",
     "start": "node .output/server/index.mjs",
     "test": "npm run build && node --test tests/rendered-html.test.mjs",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern .netlify --ignore-pattern node_modules/.nitro",
-    "db:generate": "drizzle-kit generate"
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern .output --ignore-pattern .netlify --ignore-pattern node_modules/.nitro",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:preview": "node scripts/migrate-netlify-to-supabase.mjs",
+    "db:migrate:apply": "node scripts/migrate-netlify-to-supabase.mjs --apply"
   },
   "dependencies": {
     "@netlify/blobs": "^11.0.1",
+    "@supabase/supabase-js": "^2.112.3",
     "drizzle-orm": "0.45.2",
     "react": "19.2.6",
     "react-dom": "19.2.6"

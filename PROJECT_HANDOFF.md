@@ -34,6 +34,13 @@
 - Netlify Blobs 持久化数据
 - 数据存储名称：`fengsheng-field`
 
+迁移中的新数据源：Supabase PostgreSQL
+
+- Project URL：`https://rfntxtqvvfnliktugywk.supabase.co`
+- 建表 SQL：`supabase/migrations/20260819000000_initial.sql`
+- 服务端环境变量：`SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY`
+- 环境变量模板：`DEPLOYMENT_ENV.example`
+
 主要数据键：
 
 - `ledger/`：比分事件
@@ -71,6 +78,12 @@ npx --yes netlify-cli deploy --prod
 
 也可以进入 Netlify 项目后台手动部署。
 
+### Zeabur 部署
+
+项目根目录新增了 `Dockerfile`，Zeabur 会自动识别并使用它构建 Node 服务。Zeabur 服务环境变量中需要填入 `DEPLOYMENT_ENV.example` 中的服务端变量，端口使用平台提供的 `PORT`。
+
+Zeabur 官方支持通过 Dockerfile 部署，并要求暴露服务端口：[Zeabur Dockerfile 部署说明](https://zeabur.com/docs/en-US/deploy/methods/dockerfile)。
+
 ## 6. 后台登录
 
 - 后台地址：https://fengsheng-field.netlify.app/admin
@@ -86,9 +99,11 @@ npx --yes netlify-cli deploy --prod
 
 ## 7. 支付现状
 
-真实支付目前没有接通。
+当前是“支付宝静态二维码 + 用户等待后手动确认”的流程，不是支付宝服务端回调验真的自动支付。
 
-当前 `/api/orders` 会安全地返回 `payment_not_configured`，不会产生扣款。要接入真实支付，必须先取得支付宝或微信支付等渠道的正式审核和商户参数，再补齐：
+Supabase 配置完成后，`/api/orders` 会创建 pending 订单并返回对应二维码；确认接口使用订单号，服务端执行等待时间和订单状态记录。若数据库未配置，接口会返回 `payment_not_configured`，不会产生扣款。
+
+如果后续要升级为真正自动验真支付，必须先取得支付宝或微信支付等渠道的正式审核和商户参数，再补齐：
 
 - 服务端下单
 - 支付回调验签

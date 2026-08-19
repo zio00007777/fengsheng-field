@@ -1,0 +1,9 @@
+node_modules
+.git
+.next
+.output
+dist
+.wrangler
+.vinext
+.netlify
+*.log

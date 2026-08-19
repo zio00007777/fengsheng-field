@@ -1,19 +1,22 @@
-import { appendScore, fallbackGifts, getSessionId, json, sessionCookie, storageConfigured } from "../_lib";
+import { createPendingOrder, getSessionId, json, sessionCookie, storageConfigured } from "../_lib";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null) as { giftId?: string } | null;
-  if (!body?.giftId || !(body.giftId in fallbackGifts)) return json({ error: "invalid_gift" }, { status: 400 });
+  if (!body?.giftId) return json({ error: "invalid_gift" }, { status: 400 });
   if (!storageConfigured()) return json({ error: "payment_not_configured" }, { status: 503 });
 
-  const gift = fallbackGifts[body.giftId as keyof typeof fallbackGifts];
   const sessionId = getSessionId(request);
+  const result = await createPendingOrder(body.giftId, sessionId);
+  if (result.status === "invalid_gift") return json({ error: "invalid_gift" }, { status: 400 });
+  if (result.status !== "created") return json({ error: "storage_unavailable" }, { status: 503 });
 
   return json({
-    qrcodeUrl: `/qrcodes/${body.giftId}.png?t=${Date.now()}`,
+    orderId: result.orderId,
+    qrcodeUrl: `/qrcodes/${result.gift.id}.png?t=${Date.now()}`,
     giftId: body.giftId,
-    giftName: gift.name,
-    priceCents: gift.priceCents,
-    scoreValue: gift.scoreValue,
+    giftName: result.gift.name,
+    priceCents: result.gift.priceCents,
+    scoreValue: result.gift.scoreValue,
   }, {
     headers: {
       "set-cookie": sessionCookie(sessionId),

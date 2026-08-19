@@ -1,5 +1,8 @@
 "use client";
 
+/* The entry state is intentionally restored from localStorage after mount. */
+/* eslint-disable react-hooks/set-state-in-effect */
+
 import { useEffect, useState } from "react";
 
 type Side = "support" | "against";
@@ -55,7 +58,7 @@ export default function Home() {
   const [gift, setGift] = useState<Gift | null>(null);
   const [againstReason, setAgainstReason] = useState("");
   const [notice, setNotice] = useState("");
-  const [paymentModal, setPaymentModal] = useState<{ qrcodeUrl: string; giftId: string; giftName: string; price: number; timestamp: number } | null>(null);
+  const [paymentModal, setPaymentModal] = useState<{ orderId: string; qrcodeUrl: string; giftId: string; giftName: string; price: number; timestamp: number } | null>(null);
   const [paymentConfirming, setPaymentConfirming] = useState(false);
   const [confirmWaitSeconds, setConfirmWaitSeconds] = useState(0);
 
@@ -67,7 +70,7 @@ export default function Home() {
         setPhase(state.phase);
         setSide(state.side);
         setAnswers(state.answers);
-      } catch {}
+      } catch { /* ignore malformed local session state */ }
     }
   }, []);
 
@@ -185,11 +188,12 @@ export default function Home() {
     fetch("/api/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ giftId: selectedGift.id }) })
       .then(async (response) => ({ ok: response.ok, data: await response.json().catch(() => null) }))
       .then(({ ok, data }) => {
-        if (!ok || !data?.qrcodeUrl) {
+        if (!ok || !data?.orderId || !data?.qrcodeUrl) {
           setNotice("支付二维码获取失败，未产生扣款");
           return;
         }
         setPaymentModal({
+          orderId: data.orderId,
           qrcodeUrl: data.qrcodeUrl,
           giftId: data.giftId,
           giftName: data.giftName,
@@ -214,7 +218,7 @@ export default function Home() {
       return;
     }
     setPaymentConfirming(true);
-    fetch("/api/orders/confirm", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ giftId: paymentModal.giftId }) })
+    fetch("/api/orders/confirm", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ orderId: paymentModal.orderId }) })
       .then(async (response) => ({ ok: response.ok, data: await response.json().catch(() => null) }))
       .then(({ ok, data }) => {
         setPaymentConfirming(false);
