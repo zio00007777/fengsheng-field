@@ -48,12 +48,13 @@ type LiveSignal = { against: number; support: number; supportBoost: number; phas
 function liveSignalAt(now = Date.now(), supportBoost = 0): LiveSignal {
   const phase = Math.floor(now / livePhaseMs) % livePhases.length;
   const tick = Math.floor(now / 420);
-  const wave = Math.round(Math.sin(tick * 0.41 + phase) * 120 + Math.sin(tick * 0.13) * 70);
+  const againstWave = Math.round(Math.sin(tick * 0.41 + phase) * 760 + Math.sin(tick * 0.13 + 1.2) * 280);
+  const supportWave = Math.round(Math.sin(tick * 0.29 + phase * 0.7) * 260 + Math.sin(tick * 0.17 + 2.1) * 120);
   const base = livePhases[phase];
   return {
     phase,
-    against: Math.max(0, Math.min(99999, base.against + wave)),
-    support: Math.max(0, Math.min(99999, base.support + Math.round(wave * 0.25) + supportBoost)),
+    against: Math.max(0, Math.min(99999, base.against + againstWave)),
+    support: Math.max(0, Math.min(99999, base.support + supportWave + supportBoost)),
     supportBoost,
     updatedAt: now,
   };
