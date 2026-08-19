@@ -35,12 +35,12 @@ const initialScore = { support: 2000, against: 8000 };
 const liveSignalKey = "fj_live_signal";
 const livePhaseMs = 4 * 60 * 60 * 1000;
 const livePhases = [
-  { against: 72000, support: 18000 },
-  { against: 68000, support: 17000 },
-  { against: 76000, support: 19000 },
-  { against: 64000, support: 16000 },
-  { against: 74000, support: 18500 },
-  { against: 70000, support: 17500 },
+  { total: 88000, supportRatio: 0.18 },
+  { total: 91000, supportRatio: 0.22 },
+  { total: 94000, supportRatio: 0.26 },
+  { total: 86000, supportRatio: 0.17 },
+  { total: 90000, supportRatio: 0.24 },
+  { total: 84000, supportRatio: 0.20 },
 ];
 
 type LiveSignal = { against: number; support: number; supportBoost: number; phase: number; updatedAt: number };
@@ -48,13 +48,17 @@ type LiveSignal = { against: number; support: number; supportBoost: number; phas
 function liveSignalAt(now = Date.now(), supportBoost = 0): LiveSignal {
   const phase = Math.floor(now / livePhaseMs) % livePhases.length;
   const tick = Math.floor(now / 420);
-  const againstWave = Math.round(Math.sin(tick * 0.41 + phase) * 760 + Math.sin(tick * 0.13 + 1.2) * 280);
-  const supportWave = Math.round(Math.sin(tick * 0.29 + phase * 0.7) * 260 + Math.sin(tick * 0.17 + 2.1) * 120);
   const base = livePhases[phase];
+  const ratioWave = Math.sin(tick * 0.41 + phase) * 0.018 + Math.sin(tick * 0.13 + 1.2) * 0.012;
+  const totalWave = Math.round(Math.sin(tick * 0.29 + phase * 0.7) * 1800 + Math.sin(tick * 0.17 + 2.1) * 700);
+  const total = Math.max(76000, Math.min(99999, base.total + totalWave));
+  const giftLift = Math.min(0.13, Math.max(0, supportBoost) / 90000);
+  const supportRatio = Math.max(0.14, Math.min(0.40, base.supportRatio + ratioWave + giftLift));
+  const support = Math.round(total * supportRatio);
   return {
     phase,
-    against: Math.max(0, Math.min(99999, base.against + againstWave)),
-    support: Math.max(0, Math.min(99999, base.support + supportWave + supportBoost)),
+    against: total - support,
+    support,
     supportBoost,
     updatedAt: now,
   };
@@ -86,7 +90,6 @@ export default function Home() {
   const [notice, setNotice] = useState("");
   const [paymentModal, setPaymentModal] = useState<{ orderId: string; qrcodeUrl: string; giftId: string; giftName: string; price: number; timestamp: number } | null>(null);
   const [paymentConfirming, setPaymentConfirming] = useState(false);
-  const [confirmWaitSeconds, setConfirmWaitSeconds] = useState(0);
   const [paymentReturnPrompt, setPaymentReturnPrompt] = useState(false);
   const [giftImpact, setGiftImpact] = useState<{ name: string; value: number } | null>(null);
 
@@ -203,24 +206,6 @@ export default function Home() {
     }).catch(() => setStickUnavailable(true));
   }, []);
 
-  useEffect(() => {
-    if (!paymentModal) {
-      setConfirmWaitSeconds(0);
-      return;
-    }
-    const elapsedSeconds = Math.floor((Date.now() - paymentModal.timestamp) / 1000);
-    const remaining = Math.max(0, 60 - elapsedSeconds);
-    setConfirmWaitSeconds(remaining);
-
-    if (remaining === 0) return;
-    const timer = window.setInterval(() => {
-      const now = Math.floor((Date.now() - paymentModal.timestamp) / 1000);
-      const rem = Math.max(0, 60 - now);
-      setConfirmWaitSeconds(rem);
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, [paymentModal]);
-
   function selectSide(nextSide: Side) {
     setSide(nextSide);
     setQuestionIndex(0);
@@ -293,11 +278,6 @@ export default function Home() {
 
   function confirmPayment() {
     if (!paymentModal) return;
-    const elapsedSeconds = Math.floor((Date.now() - paymentModal.timestamp) / 1000);
-    if (elapsedSeconds < 60) {
-      setNotice(`请等待 ${60 - elapsedSeconds} 秒后再确认支付`);
-      return;
-    }
     setPaymentConfirming(true);
     fetch("/api/orders/confirm", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ orderId: paymentModal.orderId }) })
       .then(async (response) => ({ ok: response.ok, data: await response.json().catch(() => null) }))
@@ -376,7 +356,7 @@ export default function Home() {
       <footer className="signal-footer"><span>FJ / SIGNAL ROOM</span><span>支持 TF 五代 · 反对时代峰峻</span><a href="/admin">ADMIN →</a></footer>
 
 
-      {paymentReturnPrompt && paymentModal && <div className="payment-return-backdrop"><div className="payment-return-prompt" role="dialog" aria-modal="true" aria-labelledby="payment-return-title"><span className="modal-kicker">RETURN CHECK / {paymentModal.giftName}</span><h2 id="payment-return-title">是否完成支付？</h2><p>你已从支付宝收款页返回。完成支付后，支持值将在确认时进入现场声量。</p>{confirmWaitSeconds > 0 && <strong className="payment-return-wait">支付后 {confirmWaitSeconds} 秒可确认</strong>}<div className="payment-return-actions"><button className="payment-not-done" onClick={dismissPaymentReturn}>还没有</button><button className="payment-done" disabled={confirmWaitSeconds > 0 || paymentConfirming} onClick={confirmPayment}>{paymentConfirming ? "确认中..." : confirmWaitSeconds > 0 ? `已完成，等待 ${confirmWaitSeconds} 秒` : "已完成支付，确认"}</button></div></div></div>}
+      {paymentReturnPrompt && paymentModal && <div className="payment-return-backdrop"><div className="payment-return-prompt" role="dialog" aria-modal="true" aria-labelledby="payment-return-title"><span className="modal-kicker">RETURN CHECK / {paymentModal.giftName}</span><h2 id="payment-return-title">是否完成支付？</h2><p>你已从支付宝收款页返回。完成支付后，支持值将在确认时进入现场声量。</p><div className="payment-return-actions"><button className="payment-not-done" onClick={dismissPaymentReturn}>还没有</button><button className="payment-done" disabled={paymentConfirming} onClick={confirmPayment}>{paymentConfirming ? "确认中..." : "已完成支付，确认"}</button></div></div></div>}
       {notice && <div className="battle-toast">{notice}</div>}
     </main>
   );

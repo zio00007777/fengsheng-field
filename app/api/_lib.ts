@@ -389,7 +389,6 @@ export async function confirmGiftOrder(orderId: string) {
       if (!order) return { status: "not_found" as const, scoreValue: 0 };
       if (order.status === "confirmed") return { status: "already_confirmed" as const, scoreValue: order.scoreValue };
       if (order.status !== "pending") return { status: "invalid_status" as const, scoreValue: 0 };
-      if (order.createdAt + 60000 > Date.now()) return { status: "too_early" as const, scoreValue: 0 };
       order.status = "confirmed";
       order.confirmedAt = Date.now();
       store.ledger.push({ side: "support", value: order.scoreValue, reason: `gift_purchase:${order.giftId}`, sessionId: order.sessionId, createdAt: Date.now() });
@@ -406,7 +405,7 @@ export async function confirmGiftOrder(orderId: string) {
   const row = (Array.isArray(data) ? data[0] : data) as SupabaseRow | undefined;
   if (!row) return { status: "unavailable" as const };
   return {
-    status: String(row.status) as "confirmed" | "already_confirmed" | "too_early" | "not_found" | "invalid_status",
+    status: String(row.status) as "confirmed" | "already_confirmed" | "not_found" | "invalid_status",
     scoreValue: Number(row.score_value) || 0,
   };
 }

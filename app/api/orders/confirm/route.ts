@@ -7,7 +7,6 @@ export async function POST(request: Request) {
 
   try {
     const result = await confirmGiftOrder(body.orderId);
-    if (result.status === "too_early") return json({ error: "confirmation_too_early" }, { status: 409 });
     if (result.status === "not_found") return json({ error: "order_not_found" }, { status: 404 });
     if (result.status === "invalid_status") return json({ error: "order_not_confirmable" }, { status: 409 });
     if (result.status === "unavailable") return json({ error: "storage_unavailable" }, { status: 503 });
