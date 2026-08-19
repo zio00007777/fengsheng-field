@@ -3,10 +3,10 @@ import { getStore, type Store } from "@netlify/blobs";
 export type Side = "support" | "against";
 
 export const fallbackGifts = {
-  spark: { name: "星火", priceCents: 600, scoreValue: 6, icon: "✦" },
-  wave: { name: "声浪", priceCents: 1800, scoreValue: 25, icon: "≈" },
-  pulse: { name: "心跳", priceCents: 6800, scoreValue: 100, icon: "◉" },
-  signal: { name: "信号塔", priceCents: 12800, scoreValue: 220, icon: "⌁" },
+  spark: { name: "星火", priceCents: 600, scoreValue: 60, icon: "✦" },
+  wave: { name: "声浪", priceCents: 1800, scoreValue: 250, icon: "≈" },
+  pulse: { name: "心跳", priceCents: 6800, scoreValue: 1000, icon: "◉" },
+  signal: { name: "信号塔", priceCents: 12800, scoreValue: 2200, icon: "⌁" },
 } as const;
 
 export type GiftRecord = {
@@ -43,7 +43,7 @@ type OrderRecord = {
 };
 
 const STORAGE_NAME = "fengsheng-field";
-const INITIAL_SCORE = { support: 51284, against: 48216 };
+const INITIAL_SCORE = { support: 2000, against: 8000 };
 
 let cachedStore: Store | null | undefined;
 

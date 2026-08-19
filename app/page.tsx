@@ -22,13 +22,13 @@ const quizSets: Record<Side, Quiz[]> = {
 };
 
 const gifts: Gift[] = [
-  { id: "spark", name: "闪点", price: 6, value: 6, image: "gifts/star.png" },
-  { id: "wave", name: "声浪", price: 18, value: 25, image: "gifts/wave.png" },
-  { id: "pulse", name: "心跳", price: 68, value: 100, image: "gifts/heartbeat.png" },
-  { id: "signal", name: "信号塔", price: 128, value: 220, image: "gifts/tower.png" },
+  { id: "spark", name: "闪点", price: 6, value: 60, image: "gifts/star.png" },
+  { id: "wave", name: "声浪", price: 18, value: 250, image: "gifts/wave.png" },
+  { id: "pulse", name: "心跳", price: 68, value: 1000, image: "gifts/heartbeat.png" },
+  { id: "signal", name: "信号塔", price: 128, value: 2200, image: "gifts/tower.png" },
 ];
 
-const initialScore = { support: 6842, against: 6219 };
+const initialScore = { support: 2000, against: 8000 };
 
 function number(value: number) {
   return new Intl.NumberFormat("zh-CN").format(value);
@@ -55,6 +55,27 @@ export default function Home() {
   const [gift, setGift] = useState<Gift | null>(null);
   const [againstReason, setAgainstReason] = useState("");
   const [notice, setNotice] = useState("");
+  const [paymentModal, setPaymentModal] = useState<{ qrcodeUrl: string; giftId: string; giftName: string; price: number; timestamp: number } | null>(null);
+  const [paymentConfirming, setPaymentConfirming] = useState(false);
+  const [confirmWaitSeconds, setConfirmWaitSeconds] = useState(0);
+
+  useEffect(() => {
+    const saved = typeof window !== "undefined" ? localStorage.getItem("fj_session_state") : null;
+    if (saved) {
+      try {
+        const state = JSON.parse(saved);
+        setPhase(state.phase);
+        setSide(state.side);
+        setAnswers(state.answers);
+      } catch {}
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("fj_session_state", JSON.stringify({ phase, side, answers }));
+    }
+  }, [phase, side, answers]);
 
   const questions = side ? quizSets[side] : [];
   const question = questions[questionIndex];
@@ -97,10 +118,22 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 2800);
-    return () => window.clearTimeout(timer);
-  }, [notice]);
+    if (!paymentModal) {
+      setConfirmWaitSeconds(0);
+      return;
+    }
+    const elapsedSeconds = Math.floor((Date.now() - paymentModal.timestamp) / 1000);
+    const remaining = Math.max(0, 60 - elapsedSeconds);
+    setConfirmWaitSeconds(remaining);
+
+    if (remaining === 0) return;
+    const timer = window.setInterval(() => {
+      const now = Math.floor((Date.now() - paymentModal.timestamp) / 1000);
+      const rem = Math.max(0, 60 - now);
+      setConfirmWaitSeconds(rem);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [paymentModal]);
 
   function selectSide(nextSide: Side) {
     setSide(nextSide);
@@ -152,13 +185,52 @@ export default function Home() {
     fetch("/api/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ giftId: selectedGift.id }) })
       .then(async (response) => ({ ok: response.ok, data: await response.json().catch(() => null) }))
       .then(({ ok, data }) => {
-        if (!ok || !data?.paymentUrl) {
-          setNotice("真实支付通道尚未配置，未产生扣款");
+        if (!ok || !data?.qrcodeUrl) {
+          setNotice("支付二维码获取失败，未产生扣款");
           return;
         }
-        window.location.assign(data.paymentUrl);
+        setPaymentModal({
+          qrcodeUrl: data.qrcodeUrl,
+          giftId: data.giftId,
+          giftName: data.giftName,
+          price: data.priceCents / 100,
+          timestamp: Date.now(),
+        });
+        // 打开支付宝
+        const qrcodeData = data.qrcodeUrl;
+        const a = document.createElement("a");
+        a.href = qrcodeData;
+        a.download = `${selectedGift.id}-qrcode.png`;
+        a.click();
       })
       .catch(() => setNotice("支付服务暂时不可用，未产生扣款"));
+  }
+
+  function confirmPayment() {
+    if (!paymentModal) return;
+    const elapsedSeconds = Math.floor((Date.now() - paymentModal.timestamp) / 1000);
+    if (elapsedSeconds < 60) {
+      setNotice(`请等待 ${60 - elapsedSeconds} 秒后再确认支付`);
+      return;
+    }
+    setPaymentConfirming(true);
+    fetch("/api/orders/confirm", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ giftId: paymentModal.giftId }) })
+      .then(async (response) => ({ ok: response.ok, data: await response.json().catch(() => null) }))
+      .then(({ ok, data }) => {
+        setPaymentConfirming(false);
+        if (!ok) {
+          setNotice("确认支付失败，请重试");
+          return;
+        }
+        setSupportScore((current) => current + Number(data?.scoreValue ?? 0));
+        setNotice(`支持值 +${data?.scoreValue ?? 0}，感谢应援`);
+        setPaymentModal(null);
+        setGift(null);
+      })
+      .catch(() => {
+        setPaymentConfirming(false);
+        setNotice("确认支付失败，请重试");
+      });
   }
 
   return (
@@ -203,6 +275,7 @@ export default function Home() {
       <footer className="signal-footer"><span>FJ / SIGNAL ROOM</span><span>支持 TF 五代 · 反对时代峰峻</span><a href="/admin">ADMIN →</a></footer>
 
       {gift && <div className="gift-modal-backdrop"><div className="gift-modal"><button className="close-modal" onClick={() => setGift(null)}>×</button><span className="modal-kicker">SECURE PAYMENT GATE / TF5</span><div className="gift-modal-main"><img src={gift.image} alt="" /><div><h2>{gift.name}</h2><p>支付 ¥{gift.price}，支付确认后增加 TF 五代支持值 +{gift.value}</p></div></div><div className="secure-copy"><b>安全结算说明</b><span>订单、金额和应援值只在服务端生成；当前未配置商户证书，不会产生扣款。</span></div><button className="gift-pay" onClick={buyGift}>获取安全支付链接 <b>↗</b></button></div></div>}
+      {paymentModal && <div className="gift-modal-backdrop"><div className="gift-modal"><button className="close-modal" onClick={() => setPaymentModal(null)}>×</button><span className="modal-kicker">ALIPAY QR CODE / {paymentModal.giftName}</span><div className="gift-modal-main"><div style={{ textAlign: "center" }}><img src={paymentModal.qrcodeUrl} alt="支付宝二维码" loading="lazy" style={{ maxWidth: "100%", borderRadius: "8px" }} /><div style={{ marginTop: "20px" }}><h2>{paymentModal.giftName}</h2><p>¥{paymentModal.price.toFixed(2)}</p></div></div></div><button className="gift-pay" onClick={() => window.open(paymentModal.qrcodeUrl, '_blank')}>去支付 ↗</button>{confirmWaitSeconds > 0 ? <div style={{ marginTop: "16px", textAlign: "center", fontSize: "14px", color: "#999" }}>支付后 {confirmWaitSeconds} 秒可确认</div> : <button className="gift-pay" style={{ marginTop: "12px" }} disabled={paymentConfirming} onClick={confirmPayment}>{paymentConfirming ? "确认中..." : "已支付，确认 ↗"}</button>}</div></div>}
       {notice && <div className="battle-toast">{notice}</div>}
     </main>
   );
