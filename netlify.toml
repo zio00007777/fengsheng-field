@@ -1,0 +1,11 @@
+[build]
+  command = "npm run build"
+
+[build.environment]
+  NODE_VERSION = "22.13.0"
+  NITRO_PRESET = "netlify"
+
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "no-store"

@@ -3,10 +3,10 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 async function render(path = "/") {
-  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
-  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
-  const { default: worker } = await import(workerUrl.href);
-  return worker.fetch(new Request(`http://localhost${path}`, { headers: { accept: "text/html" } }), { ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } }, { waitUntil() {}, passThroughOnException() {} });
+  const serverUrl = new URL("../.netlify/functions-internal/server/server.mjs", import.meta.url);
+  serverUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
+  const { default: server } = await import(serverUrl.href);
+  return server(new Request(`http://localhost${path}`, { headers: { accept: "text/html" } }));
 }
 
 test("server-renders the two-side battle field", async () => {
@@ -45,9 +45,9 @@ test("product surface includes guided quiz and operational actions", async () =>
   assert.match(page, /gift-card-high/);
   assert.match(page, /stickUnavailable/);
   assert.match(stickRoute, /export async function GET/);
-  assert.match(stickRoute, /NOT EXISTS/);
+  assert.match(stickRoute, /claimSupportStick/);
   assert.match(stickRoute, /storage_not_configured/);
-  assert.match(stickRoute, /database.batch/);
+  assert.match(stickRoute, /status === "cooldown"/);
   assert.match(page, /微信|支付宝|安全支付|真实支付/);
   assert.match(page, /不代表真实统计/);
   assert.match(page, /Math\.random/);
@@ -55,7 +55,9 @@ test("product surface includes guided quiz and operational actions", async () =>
   assert.match(admin, /editGift|编辑/);
   assert.match(schema, /scoreLedger/);
   assert.match(schema, /orders/);
-  assert.match(hosting, /"d1": "DB"/);
+  assert.match(hosting, /project_id/);
+  const netlify = await readFile(new URL("../netlify.toml", import.meta.url), "utf8");
+  assert.match(netlify, /NITRO_PRESET = "netlify"/);
 });
 
 test("admin route is present", async () => {
