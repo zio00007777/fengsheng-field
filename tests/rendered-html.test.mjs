@@ -26,10 +26,13 @@ test("server-renders the two-side battle field", async () => {
 });
 
 test("product surface includes guided quiz and operational actions", async () => {
-  const [page, admin, stickRoute, schema, hosting] = await Promise.all([
+  const [page, admin, stickRoute, shareRoute, funnelRoute, shareMigration, schema, hosting] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/admin/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/api/support-stick/claim/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/share/claim/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/funnel/event/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../supabase/migrations/20260820000001_share_and_funnel.sql", import.meta.url), "utf8"),
     readFile(new URL("../db/schema.ts", import.meta.url), "utf8"),
     readFile(new URL("../.openai/hosting.json", import.meta.url), "utf8"),
   ]);
@@ -48,11 +51,20 @@ test("product surface includes guided quiz and operational actions", async () =>
   assert.match(stickRoute, /claimSupportStick/);
   assert.match(stickRoute, /storage_not_configured/);
   assert.match(stickRoute, /status === "cooldown"/);
+  assert.match(page, /share-task/);
+  assert.match(page, /已分享，领取 \+10/);
+  assert.match(page, /navigator\.share/);
+  assert.match(shareRoute, /claimShareReward/);
+  assert.match(funnelRoute, /trackFunnelEvent/);
+  assert.match(shareMigration, /funnel_events/);
+  assert.match(shareMigration, /claim_share_reward/);
   assert.match(page, /微信|支付宝|安全支付|真实支付/);
   assert.match(page, /不代表真实统计/);
-  assert.match(page, /Math\.random/);
+  assert.match(page, /Math\.sin/);
   assert.match(admin, /运营后台/);
   assert.match(admin, /editGift|编辑/);
+  assert.match(admin, /支持转化漏斗/);
+  assert.match(admin, /去重会话/);
   assert.match(schema, /scoreLedger/);
   assert.match(schema, /orders/);
   assert.match(hosting, /project_id/);

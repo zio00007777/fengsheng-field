@@ -3,7 +3,7 @@
 /* The entry state is intentionally restored from localStorage after mount. */
 /* eslint-disable react-hooks/set-state-in-effect */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Side = "support" | "against";
 type Gift = { id: string; name: string; price: number; value: number; image: string };
@@ -31,7 +31,6 @@ const gifts: Gift[] = [
   { id: "signal", name: "信号塔", price: 128, value: 2200, image: "gifts/tower.png" },
 ];
 
-const initialScore = { support: 2000, against: 8000 };
 const liveSignalKey = "fj_live_signal";
 const livePhaseMs = 4 * 60 * 60 * 1000;
 const livePhases = [
@@ -80,8 +79,6 @@ export default function Home() {
   const [questionIndex, setQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState("");
   const [answers, setAnswers] = useState<string[]>([]);
-  const [supportScore, setSupportScore] = useState(initialScore.support);
-  const [againstScore, setAgainstScore] = useState(initialScore.against);
   const [liveSignal, setLiveSignal] = useState<LiveSignal>(() => liveSignalAt());
   const [signalPulse, setSignalPulse] = useState(false);
   const [cooldown, setCooldown] = useState(0);
@@ -92,6 +89,10 @@ export default function Home() {
   const [paymentConfirming, setPaymentConfirming] = useState(false);
   const [paymentReturnPrompt, setPaymentReturnPrompt] = useState(false);
   const [giftImpact, setGiftImpact] = useState<{ name: string; value: number } | null>(null);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareReady, setShareReady] = useState(false);
+  const [shareClaiming, setShareClaiming] = useState(false);
+  const shareIntroShown = useRef(false);
 
   useEffect(() => {
     const saved = typeof window !== "undefined" ? localStorage.getItem("fj_session_state") : null;
@@ -104,6 +105,14 @@ export default function Home() {
       } catch { /* ignore malformed local session state */ }
     }
   }, []);
+
+  function trackStage(stage: string) {
+    fetch("/api/funnel/event", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ stage }),
+    }).catch(() => undefined);
+  }
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -146,6 +155,22 @@ export default function Home() {
       document.removeEventListener("visibilitychange", restorePaymentReturn);
     };
   }, []);
+
+  useEffect(() => {
+    trackStage("visit");
+  }, []);
+
+  useEffect(() => {
+    if (phase !== "arena" || side !== "support") return;
+    trackStage("support_arena");
+    if (shareIntroShown.current) return;
+    shareIntroShown.current = true;
+    const alreadyShown = window.sessionStorage.getItem("fj_share_intro_shown");
+    if (!alreadyShown) {
+      window.sessionStorage.setItem("fj_share_intro_shown", "1");
+      setShareModalOpen(true);
+    }
+  }, [phase, side]);
 
   const questions = side ? quizSets[side] : [];
   const question = questions[questionIndex];
@@ -191,15 +216,6 @@ export default function Home() {
   }
 
   useEffect(() => {
-    fetch("/api/scoreboard").then((response) => response.ok ? response.json() : null).then((data) => {
-      if (data?.support && data?.against) {
-        setSupportScore(data.support);
-        setAgainstScore(data.against);
-      }
-    }).catch(() => undefined);
-  }, []);
-
-  useEffect(() => {
     fetch("/api/support-stick/claim").then(async (response) => ({ ok: response.ok, data: await response.json().catch(() => null) })).then(({ ok, data }) => {
       if (!ok) { setStickUnavailable(true); return; }
       if (data?.nextAt && data.nextAt > Date.now()) setCooldown(Math.ceil((data.nextAt - Date.now()) / 1000));
@@ -212,6 +228,7 @@ export default function Home() {
     setAnswers([]);
     setSelectedAnswer("");
     setPhase("quiz");
+    if (nextSide === "support") trackStage("support_selected");
   }
 
   function answerQuestion() {
@@ -224,7 +241,58 @@ export default function Home() {
       return;
     }
     fetch("/api/quiz/answer", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ side, answers: nextAnswers }) }).catch(() => undefined);
+    if (side === "support") trackStage("quiz_completed");
     setPhase("arena");
+  }
+
+  async function startShare() {
+    setShareReady(false);
+    trackStage("share_clicked");
+    const shareData = {
+      title: "峰声 FIELD · 两种声音，一个现场",
+      text: "我正在为 TF 五代发声，来现场留下你的支持。",
+      url: window.location.href,
+    };
+    try {
+      if (typeof navigator.share === "function") {
+        await navigator.share(shareData);
+        setShareReady(true);
+        setNotice("分享面板已完成，点击确认领取 +10");
+        return;
+      }
+      await navigator.clipboard.writeText(window.location.href);
+      setShareReady(true);
+      setNotice("现场链接已复制，发给朋友后点击确认领取 +10");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        setShareReady(true);
+        setNotice("链接已复制，发给朋友后点击确认领取 +10");
+      } catch {
+        setNotice("请手动复制当前网址，再回来领取 +10");
+      }
+    }
+  }
+
+  async function claimShare() {
+    if (!shareReady || shareClaiming) return;
+    setShareClaiming(true);
+    const response = await fetch("/api/share/claim", { method: "POST" });
+    const data = await response.json().catch(() => null);
+    setShareClaiming(false);
+    if (!response.ok) {
+      setNotice("分享奖励暂时不可用，请稍后重试");
+      return;
+    }
+    const value = Number(data?.value ?? 10);
+    bumpLiveSupport(value);
+    setGiftImpact({ name: "分享信号", value });
+    setSignalPulse(true);
+    window.setTimeout(() => setSignalPulse(false), 700);
+    setShareModalOpen(false);
+    setShareReady(false);
+    setNotice(`分享信号 +${value}，已进入 TF 五代现场声量`);
   }
 
   async function claimStick() {
@@ -238,7 +306,6 @@ export default function Home() {
       return;
     }
     const value = Number(data?.value ?? 1);
-    setSupportScore((current) => current + value);
     bumpLiveSupport(value);
     setCooldown(Math.max(0, Math.ceil((Number(data?.nextAt ?? Date.now() + 3600000) - Date.now()) / 1000)));
     setNotice("TF 五代应援信号已点亮，支持值 +1");
@@ -246,13 +313,13 @@ export default function Home() {
 
   function sendAgainstReason() {
     if (!againstReason) return;
-    setAgainstScore((current) => current + 1);
     setNotice("反对理由已留下，反对值 +1");
     setAgainstReason("");
     fetch("/api/side-selection", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ side: "against", reason: againstReason }) }).catch(() => undefined);
   }
 
   function buyGift(selectedGift: Gift) {
+    trackStage("gift_clicked");
     fetch("/api/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ giftId: selectedGift.id }) })
       .then(async (response) => ({ ok: response.ok, data: await response.json().catch(() => null) }))
       .then(({ ok, data }) => {
@@ -288,12 +355,12 @@ export default function Home() {
           return;
         }
         const scoreValue = Number(data?.scoreValue ?? 0);
-        setSupportScore((current) => current + scoreValue);
         bumpLiveSupport(scoreValue);
         setGiftImpact({ name: paymentModal.giftName, value: scoreValue });
         setSignalPulse(true);
         window.setTimeout(() => setSignalPulse(false), 700);
         setNotice(`支持值 +${scoreValue}，${paymentModal.giftName} 已进入现场声量`);
+        trackStage("payment_confirmed");
         sessionStorage.removeItem("fj_pending_payment");
         sessionStorage.removeItem("fj_payment_returned");
         setPaymentReturnPrompt(false);
@@ -353,7 +420,11 @@ export default function Home() {
 
       {phase === "arena" && side && <section className="action-panel"><div className="action-heading"><span>YOUR SIDE / {side === "support" ? "02" : "01"}</span><h2>{activeLabel}</h2><p>{side === "support" ? "四题确认完成，直接开始应援：先送出高支持力礼物，再领取每小时应援棒。" : "现在就把反对理由留下。"}</p></div>{side === "support" ? <div className="support-actions"><div className="gift-callout"><b>第一应援动作</b><span>送出特效礼物，增加对应支持值</span></div><div className="action-label"><span>特效礼物 / 立即送出</span><small>高价礼物 = 更高支持力</small></div><div className="gift-actions">{gifts.map((item) => <button className={`gift-card ${item.value >= 100 ? "gift-card-high" : ""}`} key={item.id} onClick={() => buyGift(item)}><span className="gift-card-glow" /><span className="gift-card-icon"><img src={item.image} alt="" /></span><strong>{item.name}</strong><b className="gift-card-power">+{item.value}<span>支持力</span></b><small>¥{item.price} / 点击进入收款图</small><em>去支付 ↗</em></button>)}</div><div className="tf5-card"><div className="tf5-mark">TF<br /><b>5</b></div><div><span>SUPPORT SIGNAL / HOURLY</span><h3>TF 五代应援棒 <b>+1</b></h3><p>{cooldown > 0 ? <>下一根可领取：<Countdown seconds={cooldown} /></> : "每小时可点亮一根"}</p></div><button disabled={cooldown > 0} onClick={claimStick}>{cooldown > 0 ? <Countdown seconds={cooldown} /> : "点亮"}</button></div></div> : <div className="against-actions"><span className="action-label">选择你最主要的反对理由</span><div className="reason-grid">{quizSets.against[0].options.map((reason) => <button className={againstReason === reason ? "selected" : ""} key={reason} onClick={() => setAgainstReason(reason)}>{reason}<b>{againstReason === reason ? "✓" : "+"}</b></button>)}</div><button className="against-submit" disabled={!againstReason} onClick={sendAgainstReason}>留下这条反对声量 <b>→</b></button><p>只记录理由，不开放辱骂、人肉或骚扰内容。</p></div>}</section>}
 
+      {phase === "arena" && side === "support" && <aside className="share-task" aria-label="分享应援任务"><span>SUPPORT TASK / 01</span><strong>分享现场</strong><b>+10 支援值</b><button onClick={() => { setShareReady(false); setShareModalOpen(true); }}>立即分享 <i>↗</i></button></aside>}
+
       <footer className="signal-footer"><span>FJ / SIGNAL ROOM</span><span>支持 TF 五代 · 反对时代峰峻</span><a href="/admin">ADMIN →</a></footer>
+
+      {shareModalOpen && <div className="share-modal-backdrop"><div className="share-modal" role="dialog" aria-modal="true" aria-labelledby="share-title"><button className="close-modal" aria-label="关闭" onClick={() => setShareModalOpen(false)}>×</button><span className="modal-kicker">SIGNAL BOOST / +10</span><h2 id="share-title">让更多人<br /><b>听见 TF 五代。</b></h2><p>分享这个现场链接，为支持方增加 10 点支援值。分享完成后回来确认即可领取。</p><div className="share-modal-flow"><span>01 分享链接</span><i>→</i><span>02 回到现场</span><i>→</i><span>03 领取 +10</span></div><button className="share-start" onClick={startShare}>{shareReady ? "已完成分享" : "分享现场链接"}<b>↗</b></button><button className="share-claim" disabled={!shareReady || shareClaiming} onClick={claimShare}>{shareClaiming ? "正在写入现场..." : "已分享，领取 +10"}<b>→</b></button></div></div>}
 
 
       {paymentReturnPrompt && paymentModal && <div className="payment-return-backdrop"><div className="payment-return-prompt" role="dialog" aria-modal="true" aria-labelledby="payment-return-title"><span className="modal-kicker">RETURN CHECK / {paymentModal.giftName}</span><h2 id="payment-return-title">是否完成支付？</h2><p>你已从支付宝收款页返回。完成支付后，支持值将在确认时进入现场声量。</p><div className="payment-return-actions"><button className="payment-not-done" onClick={dismissPaymentReturn}>还没有</button><button className="payment-done" disabled={paymentConfirming} onClick={confirmPayment}>{paymentConfirming ? "确认中..." : "已完成支付，确认"}</button></div></div></div>}

@@ -43,10 +43,27 @@ type LocalLedgerEntry = {
   createdAt: number;
 };
 
+export type FunnelStage =
+  | "visit"
+  | "support_selected"
+  | "quiz_completed"
+  | "support_arena"
+  | "share_clicked"
+  | "share_claimed"
+  | "gift_clicked"
+  | "payment_confirmed";
+
+type LocalFunnelEvent = {
+  stage: FunnelStage;
+  sessionId: string;
+  createdAt: number;
+};
+
 type LocalStore = {
   ledger: LocalLedgerEntry[];
   claims: Record<string, { createdAt: number; value: 1 }>;
   orders: OrderRecord[];
+  funnelEvents: LocalFunnelEvent[];
 };
 
 const INITIAL_SCORE = { support: 2000, against: 8000 };
@@ -62,7 +79,7 @@ function localFallbackEnabled() {
 }
 
 function emptyLocalStore(): LocalStore {
-  return { ledger: [], claims: {}, orders: [] };
+  return { ledger: [], claims: {}, orders: [], funnelEvents: [] };
 }
 
 async function loadLocalStore() {
@@ -77,6 +94,7 @@ async function loadLocalStore() {
         ledger: Array.isArray(parsed.ledger) ? parsed.ledger : [],
         claims: parsed.claims && typeof parsed.claims === "object" ? parsed.claims as LocalStore["claims"] : {},
         orders: Array.isArray(parsed.orders) ? parsed.orders : [],
+        funnelEvents: Array.isArray(parsed.funnelEvents) ? parsed.funnelEvents : [],
       };
     } catch {
       localStore = emptyLocalStore();
@@ -210,6 +228,104 @@ export async function appendScore(
     created_at: new Date().toISOString(),
   });
   return !error;
+}
+
+export async function trackFunnelEvent(stage: FunnelStage, sessionId: string, now = Date.now()) {
+  const db = database();
+  if (!db) {
+    if (!localFallbackEnabled()) return false;
+    await updateLocalStore((store) => {
+      store.funnelEvents.push({ stage, sessionId, createdAt: now });
+    });
+    return true;
+  }
+
+  const { error } = await db.from("funnel_events").insert({
+    id: crypto.randomUUID(),
+    stage,
+    session_id: sessionId,
+    created_at: new Date(now).toISOString(),
+  });
+  return !error;
+}
+
+export async function claimShareReward(sessionId: string, now = Date.now()) {
+  const db = database();
+  if (!db) {
+    if (!localFallbackEnabled()) return { status: "unavailable" as const };
+    await updateLocalStore((store) => {
+      store.ledger.push({ side: "support", value: 10, reason: "share_reward", sessionId, createdAt: now });
+      store.funnelEvents.push({ stage: "share_claimed", sessionId, createdAt: now });
+    });
+    return { status: "claimed" as const, value: 10 };
+  }
+
+  const { data, error } = await db.rpc("claim_share_reward", {
+    p_session_id: sessionId,
+    p_now: new Date(now).toISOString(),
+  });
+  if (error) throw error;
+  const row = (Array.isArray(data) ? data[0] : data) as SupabaseRow | undefined;
+  if (!row) return { status: "unavailable" as const };
+  return { status: String(row.status) as "claimed", value: Number(row.value) || 10 };
+}
+
+export type FunnelOverview = {
+  stages: Array<{ stage: FunnelStage; events: number; sessions: number; rateFromPrevious: number | null }>;
+  totalSessions: number;
+  totalEvents: number;
+};
+
+const funnelStages: FunnelStage[] = [
+  "visit",
+  "support_selected",
+  "quiz_completed",
+  "support_arena",
+  "share_clicked",
+  "share_claimed",
+  "gift_clicked",
+  "payment_confirmed",
+];
+
+function summarizeFunnel(events: Array<{ stage: FunnelStage; sessionId: string }>): FunnelOverview {
+  const stages = funnelStages.map((stage, index) => {
+    const stageEvents = events.filter((event) => event.stage === stage);
+    const sessions = new Set(stageEvents.map((event) => event.sessionId)).size;
+    const previousSessions = index === 0 ? 0 : new Set(events.filter((event) => event.stage === funnelStages[index - 1]).map((event) => event.sessionId)).size;
+    return {
+      stage,
+      events: stageEvents.length,
+      sessions,
+      rateFromPrevious: index === 0 ? null : previousSessions ? Number(((sessions / previousSessions) * 100).toFixed(1)) : 0,
+    };
+  });
+  return {
+    stages,
+    totalSessions: new Set(events.map((event) => event.sessionId)).size,
+    totalEvents: events.length,
+  };
+}
+
+export async function funnelOverview(rangeStart?: number, rangeEnd?: number) {
+  const db = database();
+  if (!db) {
+    if (!localFallbackEnabled()) return summarizeFunnel([]);
+    const events = (await readConsistentLocalStore()).funnelEvents
+      .filter((event) => rangeStart === undefined || event.createdAt >= rangeStart)
+      .filter((event) => rangeEnd === undefined || event.createdAt < rangeEnd)
+      .map((event) => ({ stage: event.stage, sessionId: event.sessionId }));
+    return summarizeFunnel(events);
+  }
+
+  let query = db.from("funnel_events").select("stage,session_id,created_at");
+  if (rangeStart !== undefined) query = query.gte("created_at", new Date(rangeStart).toISOString());
+  if (rangeEnd !== undefined) query = query.lt("created_at", new Date(rangeEnd).toISOString());
+  const { data, error } = await query;
+  if (error) throw error;
+  const events = (data ?? [])
+    .filter((row) => funnelStages.includes(String(row.stage) as FunnelStage))
+    .map((row) => ({ stage: String(row.stage) as FunnelStage, sessionId: String(row.session_id) }));
+  return summarizeFunnel(events);
 }
 
 export async function latestSupportStickClaim(sessionId: string) {

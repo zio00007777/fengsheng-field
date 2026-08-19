@@ -245,6 +245,67 @@
   .gift-impact { position:relative; top:auto; right:auto; grid-column:1/3; justify-self:start; margin-top:-2px; }
 }
 
+/* Share mission: a persistent right-side prompt that feeds the same support ledger. */
+.share-task { position:fixed; top:50%; right:16px; z-index:8; width:142px; padding:15px 14px 14px; transform:translateY(-50%); background:var(--blue); color:var(--paper); box-shadow:6px 6px 0 var(--ink); }
+.share-task span { display:block; color:rgba(245,241,233,.72); font:8px var(--mono); letter-spacing:.1em; }
+.share-task strong { display:block; margin-top:15px; font:800 25px/.9 var(--display); letter-spacing:-.04em; }
+.share-task>b { display:block; margin-top:7px; color:#d8dcff; font:700 12px var(--mono); }
+.share-task button { width:100%; margin-top:16px; padding:9px 8px; border:1px solid var(--paper); background:var(--paper); color:var(--blue); font-weight:800; font-size:10px; text-align:left; }
+.share-task button i { float:right; font-style:normal; font-size:14px; }
+.share-modal-backdrop { position:fixed; inset:0; z-index:14; display:grid; place-items:center; padding:20px; background:rgba(7,8,14,.82); backdrop-filter:blur(10px); }
+.share-modal { width:min(520px,100%); position:relative; padding:30px; background:var(--paper); color:var(--ink); box-shadow:10px 10px 0 var(--blue); animation:modal-in .3s ease; }
+.share-modal h2 { margin:20px 0 13px; font:800 clamp(42px,7vw,68px)/.9 var(--display); letter-spacing:-.06em; }
+.share-modal h2 b { color:var(--blue); }
+.share-modal>p { max-width:410px; margin:0; color:#777983; font-size:12px; line-height:1.65; }
+.share-modal-flow { display:flex; align-items:center; gap:7px; margin:23px 0 18px; padding:10px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); color:#777983; font:9px var(--mono); }
+.share-modal-flow span { flex:1; }
+.share-modal-flow i { color:var(--blue); font-style:normal; }
+.share-start,.share-claim { width:100%; min-height:48px; padding:11px 14px; text-align:left; font-weight:800; }
+.share-start { border:1px solid var(--ink); background:var(--ink); color:var(--paper); }
+.share-start b,.share-claim b { float:right; font-size:18px; }
+.share-claim { margin-top:8px; border:1px solid var(--blue); background:var(--blue); color:var(--paper); }
+.share-claim:disabled { cursor:not-allowed; opacity:.42; }
+@media(max-width:680px){
+  .share-task { top:auto; right:10px; bottom:14px; width:137px; padding:11px 11px 10px; transform:none; box-shadow:4px 4px 0 var(--ink); }
+  .share-task strong { margin-top:7px; font-size:20px; }
+  .share-task>b { margin-top:4px; font-size:10px; }
+  .share-task button { margin-top:9px; padding:7px; font-size:9px; }
+  .share-modal { padding:25px 20px; }
+  .share-modal h2 { margin-top:16px; font-size:46px; }
+  .share-modal-flow { gap:4px; font-size:7px; }
+}
+
+/* Admin funnel */
+.admin-funnel-head { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; }
+.admin-funnel-head h2 { margin-bottom:0; }
+.admin-funnel-head select { padding:9px 11px; border:1px solid #4a4b55; background:#1a1b20; color:var(--paper); font-size:10px; }
+.admin-funnel-summary { display:flex; gap:50px; margin:25px 0 22px; }
+.admin-funnel-summary small { display:block; color:#a0a1a9; font-size:10px; }
+.admin-funnel-summary strong { display:block; margin-top:4px; color:var(--blue-light); font:700 32px var(--display); }
+.admin-funnel-list { border-top:1px solid #41424b; }
+.admin-funnel-row { display:grid; grid-template-columns:155px minmax(120px,1fr) 105px 55px; gap:13px; align-items:center; padding:11px 0; border-bottom:1px solid #363740; }
+.admin-funnel-label { display:flex; gap:10px; align-items:center; }
+.admin-funnel-label b { color:#8e8f96; font:9px var(--mono); }
+.admin-funnel-label strong { font-size:11px; }
+.admin-funnel-bar { height:10px; background:#17181d; }
+.admin-funnel-bar i { display:block; height:100%; background:linear-gradient(90deg,var(--blue),#7d8dff); }
+.admin-funnel-row>span,.admin-funnel-row>em { color:#a0a1a9; font:9px var(--mono); font-style:normal; }
+.admin-funnel-row>em { color:var(--red); text-align:right; }
+@media(max-width:850px){
+  .admin-shell { padding:28px 5vw; }
+  .admin-grid { grid-template-columns:1fr; }
+  .admin-wide { grid-column:auto; }
+  .admin-funnel-row { grid-template-columns:125px minmax(80px,1fr) 72px; gap:8px; }
+  .admin-funnel-row>em { display:none; }
+}
+
+@media(max-width:680px){
+  .share-task { top:50%; right:8px; bottom:auto; width:126px; padding:10px 9px; transform:translateY(-50%); }
+  .share-task strong { margin-top:7px; font-size:19px; }
+  .share-task>b { margin-top:4px; font-size:9px; }
+  .share-task button { margin-top:8px; padding:7px; font-size:8px; }
+}
+
 /* Payment return check: the QR image is the only payment screen. */
 .payment-return-backdrop { position:fixed; inset:0; z-index:12; display:grid; place-items:center; padding:20px; background:rgba(7,8,14,.82); backdrop-filter:blur(10px); }
 .payment-return-prompt { width:min(520px,100%); padding:28px; background:var(--paper); color:var(--ink); box-shadow:10px 10px 0 var(--blue); }
