@@ -1,4 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
 
 export type Side = "support" | "against";
 
@@ -33,8 +35,82 @@ export type OrderRecord = {
 
 type SupabaseRow = Record<string, unknown>;
 
+type LocalLedgerEntry = {
+  side: Side;
+  value: number;
+  reason: string;
+  sessionId?: string | null;
+  createdAt: number;
+};
+
+type LocalStore = {
+  ledger: LocalLedgerEntry[];
+  claims: Record<string, { createdAt: number; value: 1 }>;
+};
+
 const INITIAL_SCORE = { support: 2000, against: 8000 };
 let cachedDatabase: SupabaseClient | null | undefined;
+let localStore: LocalStore | null = null;
+let localStoreLoad: Promise<LocalStore> | null = null;
+let localWriteQueue: Promise<void> = Promise.resolve();
+
+const localStorePath = () => process.env.FJ_LOCAL_STORE_PATH ?? path.join(process.cwd(), "data", "signal-room.json");
+
+function localFallbackEnabled() {
+  return process.env.FJ_LOCAL_FALLBACK !== "false";
+}
+
+function emptyLocalStore(): LocalStore {
+  return { ledger: [], claims: {} };
+}
+
+async function loadLocalStore() {
+  if (localStore) return localStore;
+  if (localStoreLoad) return localStoreLoad;
+
+  localStoreLoad = (async () => {
+    try {
+      const raw = await readFile(localStorePath(), "utf8");
+      const parsed = JSON.parse(raw) as Partial<LocalStore>;
+      localStore = {
+        ledger: Array.isArray(parsed.ledger) ? parsed.ledger : [],
+        claims: parsed.claims && typeof parsed.claims === "object" ? parsed.claims as LocalStore["claims"] : {},
+      };
+    } catch {
+      localStore = emptyLocalStore();
+    }
+    return localStore;
+  })();
+
+  try {
+    return await localStoreLoad;
+  } finally {
+    localStoreLoad = null;
+  }
+}
+
+async function persistLocalStore(store: LocalStore) {
+  const target = localStorePath();
+  await mkdir(path.dirname(target), { recursive: true });
+  await writeFile(`${target}.tmp`, JSON.stringify(store, null, 2), "utf8");
+  await writeFile(target, JSON.stringify(store, null, 2), "utf8");
+}
+
+async function updateLocalStore<T>(mutator: (store: LocalStore) => T | Promise<T>) {
+  const operation = localWriteQueue.then(async () => {
+    const store = await loadLocalStore();
+    const result = await mutator(store);
+    await persistLocalStore(store);
+    return result;
+  });
+  localWriteQueue = operation.then(() => undefined, () => undefined);
+  return operation;
+}
+
+async function readConsistentLocalStore() {
+  await localWriteQueue;
+  return loadLocalStore();
+}
 
 function database() {
   if (cachedDatabase !== undefined) return cachedDatabase;
@@ -54,6 +130,10 @@ function database() {
 
 export function storageConfigured() {
   return Boolean(database());
+}
+
+export function signalStorageConfigured() {
+  return Boolean(database()) || localFallbackEnabled();
 }
 
 export function getSessionId(request: Request) {
@@ -82,7 +162,15 @@ export function paymentProvider() {
 
 export async function scoreTotals() {
   const db = database();
-  if (!db) return { ...INITIAL_SCORE };
+  if (!db) {
+    if (!localFallbackEnabled()) return { ...INITIAL_SCORE };
+    const store = await readConsistentLocalStore();
+    const totals = { ...INITIAL_SCORE };
+    for (const row of store.ledger) {
+      if (row.side === "support" || row.side === "against") totals[row.side] += Number(row.value) || 0;
+    }
+    return totals;
+  }
 
   const { data, error } = await db.from("ledger").select("side,value");
   if (error) throw error;
@@ -103,7 +191,13 @@ export async function appendScore(
   sessionId?: string,
 ) {
   const db = database();
-  if (!db) return false;
+  if (!db) {
+    if (!localFallbackEnabled()) return false;
+    await updateLocalStore((store) => {
+      store.ledger.push({ side, value, reason, sessionId: sessionId ?? null, createdAt: Date.now() });
+    });
+    return true;
+  }
 
   const { error } = await db.from("ledger").insert({
     id: crypto.randomUUID(),
@@ -118,7 +212,11 @@ export async function appendScore(
 
 export async function latestSupportStickClaim(sessionId: string) {
   const db = database();
-  if (!db) return null;
+  if (!db) {
+    if (!localFallbackEnabled()) return null;
+    const claim = (await readConsistentLocalStore()).claims[sessionId];
+    return claim ? { createdAt: claim.createdAt, sessionId, value: 1 as const } : null;
+  }
 
   const { data, error } = await db
     .from("claims")
@@ -136,7 +234,17 @@ export async function latestSupportStickClaim(sessionId: string) {
 
 export async function claimSupportStick(sessionId: string, now = Date.now()) {
   const db = database();
-  if (!db) return { status: "unavailable" as const };
+  if (!db) {
+    if (!localFallbackEnabled()) return { status: "unavailable" as const };
+    return updateLocalStore((store) => {
+      const previous = store.claims[sessionId];
+      const nextAt = previous ? previous.createdAt + 3600000 : 0;
+      if (nextAt > now) return { status: "cooldown" as const, nextAt };
+      store.claims[sessionId] = { createdAt: now, value: 1 };
+      store.ledger.push({ side: "support", value: 1, reason: "support_stick", sessionId, createdAt: now });
+      return { status: "claimed" as const, nextAt: now + 3600000, value: 1 };
+    });
+  }
 
   const { data, error } = await db.rpc("claim_support_stick", {
     p_session_id: sessionId,

@@ -4,7 +4,7 @@ import {
   json,
   latestSupportStickClaim,
   sessionCookie,
-  storageConfigured,
+  signalStorageConfigured,
 } from "../../_lib";
 
 const COOLDOWN_MS = 60 * 60 * 1000;
@@ -12,7 +12,7 @@ const COOLDOWN_MS = 60 * 60 * 1000;
 export async function GET(request: Request) {
   const sessionId = getSessionId(request);
   const headers = { "set-cookie": sessionCookie(sessionId) };
-  if (!storageConfigured()) return json({ error: "storage_not_configured" }, { status: 503, headers });
+  if (!signalStorageConfigured()) return json({ error: "storage_not_configured" }, { status: 503, headers });
   try {
     const last = await latestSupportStickClaim(sessionId);
     const nextAt = last ? Number(last.createdAt) + COOLDOWN_MS : 0;
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const sessionId = getSessionId(request);
   const headers = { "set-cookie": sessionCookie(sessionId) };
-  if (!storageConfigured()) return json({ error: "storage_not_configured" }, { status: 503, headers });
+  if (!signalStorageConfigured()) return json({ error: "storage_not_configured" }, { status: 503, headers });
 
   try {
     const result = await claimSupportStick(sessionId);
