@@ -46,6 +46,7 @@ type LocalLedgerEntry = {
 type LocalStore = {
   ledger: LocalLedgerEntry[];
   claims: Record<string, { createdAt: number; value: 1 }>;
+  orders: OrderRecord[];
 };
 
 const INITIAL_SCORE = { support: 2000, against: 8000 };
@@ -61,7 +62,7 @@ function localFallbackEnabled() {
 }
 
 function emptyLocalStore(): LocalStore {
-  return { ledger: [], claims: {} };
+  return { ledger: [], claims: {}, orders: [] };
 }
 
 async function loadLocalStore() {
@@ -75,6 +76,7 @@ async function loadLocalStore() {
       localStore = {
         ledger: Array.isArray(parsed.ledger) ? parsed.ledger : [],
         claims: parsed.claims && typeof parsed.claims === "object" ? parsed.claims as LocalStore["claims"] : {},
+        orders: Array.isArray(parsed.orders) ? parsed.orders : [],
       };
     } catch {
       localStore = emptyLocalStore();
@@ -129,7 +131,7 @@ function database() {
 }
 
 export function storageConfigured() {
-  return Boolean(database());
+  return Boolean(database()) || localFallbackEnabled();
 }
 
 export function signalStorageConfigured() {
@@ -321,7 +323,13 @@ function mapOrder(row: SupabaseRow): OrderRecord {
 
 export async function listOrders() {
   const db = database();
-  if (!db) return [];
+  if (!db) {
+    if (!localFallbackEnabled()) return [];
+    return (await readConsistentLocalStore()).orders
+      .slice()
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, 30);
+  }
 
   const { data, error } = await db
     .from("orders")
@@ -334,7 +342,24 @@ export async function listOrders() {
 
 export async function createPendingOrder(giftId: string, sessionId: string) {
   const db = database();
-  if (!db) return { status: "unavailable" as const };
+  if (!db) {
+    if (!localFallbackEnabled()) return { status: "unavailable" as const };
+    const gift = fallbackGiftRecords().find((item) => item.id === giftId && item.enabled);
+    if (!gift) return { status: "invalid_gift" as const };
+    const order: OrderRecord = {
+      id: crypto.randomUUID(),
+      giftId: gift.id,
+      amountCents: gift.priceCents,
+      scoreValue: gift.scoreValue,
+      status: "pending",
+      provider: "alipay_qrcode_manual",
+      sessionId,
+      createdAt: Date.now(),
+      confirmedAt: null,
+    };
+    await updateLocalStore((store) => { store.orders.push(order); });
+    return { status: "created" as const, orderId: order.id, gift };
+  }
 
   const gift = (await listGifts()).find((item) => item.id === giftId && item.enabled);
   if (!gift) return { status: "invalid_gift" as const };
@@ -357,7 +382,20 @@ export async function createPendingOrder(giftId: string, sessionId: string) {
 
 export async function confirmGiftOrder(orderId: string) {
   const db = database();
-  if (!db) return { status: "unavailable" as const };
+  if (!db) {
+    if (!localFallbackEnabled()) return { status: "unavailable" as const };
+    return updateLocalStore((store) => {
+      const order = store.orders.find((item) => item.id === orderId);
+      if (!order) return { status: "not_found" as const, scoreValue: 0 };
+      if (order.status === "confirmed") return { status: "already_confirmed" as const, scoreValue: order.scoreValue };
+      if (order.status !== "pending") return { status: "invalid_status" as const, scoreValue: 0 };
+      if (order.createdAt + 60000 > Date.now()) return { status: "too_early" as const, scoreValue: 0 };
+      order.status = "confirmed";
+      order.confirmedAt = Date.now();
+      store.ledger.push({ side: "support", value: order.scoreValue, reason: `gift_purchase:${order.giftId}`, sessionId: order.sessionId, createdAt: Date.now() });
+      return { status: "confirmed" as const, scoreValue: order.scoreValue };
+    });
+  }
 
   const { data, error } = await db.rpc("confirm_gift_order", {
     p_order_id: orderId,
