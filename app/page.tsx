@@ -88,6 +88,7 @@ export default function Home() {
   const [paymentModal, setPaymentModal] = useState<{ orderId: string; qrcodeUrl: string; giftId: string; giftName: string; price: number; timestamp: number } | null>(null);
   const [paymentConfirming, setPaymentConfirming] = useState(false);
   const [confirmWaitSeconds, setConfirmWaitSeconds] = useState(0);
+  const [paymentReturnPrompt, setPaymentReturnPrompt] = useState(false);
   const [giftImpact, setGiftImpact] = useState<{ name: string; value: number } | null>(null);
 
   useEffect(() => {
@@ -107,6 +108,42 @@ export default function Home() {
       localStorage.setItem("fj_session_state", JSON.stringify({ phase, side, answers }));
     }
   }, [phase, side, answers]);
+
+  // The payment page is a static Alipay collection image. Keep the pending
+  // order in the tab session so Safari can restore it after the user taps Back.
+  useEffect(() => {
+    function restorePaymentReturn() {
+      if (typeof window === "undefined" || sessionStorage.getItem("fj_payment_returned") === "1") return;
+      const saved = sessionStorage.getItem("fj_pending_payment");
+      if (!saved) return;
+      try {
+        const pending = JSON.parse(saved) as { orderId?: string; qrcodeUrl?: string; giftId?: string; giftName?: string; price?: number; timestamp?: number };
+        if (!pending.orderId || !pending.qrcodeUrl || !pending.giftName || !pending.timestamp) return;
+        sessionStorage.setItem("fj_payment_returned", "1");
+        setPaymentModal({
+          orderId: pending.orderId,
+          qrcodeUrl: pending.qrcodeUrl,
+          giftId: pending.giftId ?? "",
+          giftName: pending.giftName,
+          price: Number(pending.price ?? 0),
+          timestamp: pending.timestamp,
+        });
+        setPaymentReturnPrompt(true);
+      } catch {
+        sessionStorage.removeItem("fj_pending_payment");
+      }
+    }
+
+    restorePaymentReturn();
+    window.addEventListener("pageshow", restorePaymentReturn);
+    window.addEventListener("focus", restorePaymentReturn);
+    document.addEventListener("visibilitychange", restorePaymentReturn);
+    return () => {
+      window.removeEventListener("pageshow", restorePaymentReturn);
+      window.removeEventListener("focus", restorePaymentReturn);
+      document.removeEventListener("visibilitychange", restorePaymentReturn);
+    };
+  }, []);
 
   const questions = side ? quizSets[side] : [];
   const question = questions[questionIndex];
@@ -241,20 +278,18 @@ export default function Home() {
           setNotice("支付二维码获取失败，未产生扣款");
           return;
         }
-        setPaymentModal({
+        const pendingPayment = {
           orderId: data.orderId,
           qrcodeUrl: data.qrcodeUrl,
           giftId: data.giftId,
           giftName: data.giftName,
           price: data.priceCents / 100,
           timestamp: Date.now(),
-        });
-        // 打开支付宝
-        const qrcodeData = data.qrcodeUrl;
-        const a = document.createElement("a");
-        a.href = qrcodeData;
-        a.download = `${selectedGift.id}-qrcode.png`;
-        a.click();
+        };
+        sessionStorage.removeItem("fj_payment_returned");
+        sessionStorage.setItem("fj_pending_payment", JSON.stringify(pendingPayment));
+        // 直接进入第 3 张支付宝收款图，不再经过中间支付页或下载二维码。
+        window.location.assign(data.qrcodeUrl);
       })
       .catch(() => setNotice("支付服务暂时不可用，未产生扣款"));
   }
@@ -282,6 +317,9 @@ export default function Home() {
         setSignalPulse(true);
         window.setTimeout(() => setSignalPulse(false), 700);
         setNotice(`支持值 +${scoreValue}，${paymentModal.giftName} 已进入现场声量`);
+        sessionStorage.removeItem("fj_pending_payment");
+        sessionStorage.removeItem("fj_payment_returned");
+        setPaymentReturnPrompt(false);
         setPaymentModal(null);
         setGift(null);
       })
@@ -289,6 +327,14 @@ export default function Home() {
         setPaymentConfirming(false);
         setNotice("确认支付失败，请重试");
       });
+  }
+
+  function dismissPaymentReturn() {
+    sessionStorage.removeItem("fj_pending_payment");
+    sessionStorage.removeItem("fj_payment_returned");
+    setPaymentReturnPrompt(false);
+    setPaymentModal(null);
+    setNotice("暂未确认支付，可重新选择礼物");
   }
 
   return (
@@ -334,7 +380,7 @@ export default function Home() {
       <footer className="signal-footer"><span>FJ / SIGNAL ROOM</span><span>支持 TF 五代 · 反对时代峰峻</span><a href="/admin">ADMIN →</a></footer>
 
       {gift && <div className="gift-modal-backdrop"><div className="gift-modal"><button className="close-modal" onClick={() => setGift(null)}>×</button><span className="modal-kicker">ALIPAY QR CODE / TF5</span><div className="gift-modal-main"><img src={gift.image} alt="" /><div><h2>{gift.name}</h2><p>支付 ¥{gift.price}，确认后增加 TF 五代支持值 +{gift.value}</p></div></div><button className="gift-pay" onClick={buyGift}>去支付 <b>↗</b></button></div></div>}
-      {paymentModal && <div className="gift-modal-backdrop"><div className="gift-modal"><button className="close-modal" onClick={() => setPaymentModal(null)}>×</button><span className="modal-kicker">ALIPAY QR CODE / {paymentModal.giftName}</span><div className="gift-modal-main"><div style={{ textAlign: "center" }}><img src={paymentModal.qrcodeUrl} alt="支付宝二维码" loading="lazy" style={{ maxWidth: "100%", borderRadius: "8px" }} /><div style={{ marginTop: "20px" }}><h2>{paymentModal.giftName}</h2><p>¥{paymentModal.price.toFixed(2)}</p></div></div></div><button className="gift-pay" onClick={() => window.open(paymentModal.qrcodeUrl, '_blank')}>去支付 ↗</button>{confirmWaitSeconds > 0 ? <div style={{ marginTop: "16px", textAlign: "center", fontSize: "14px", color: "#999" }}>支付后 {confirmWaitSeconds} 秒可确认</div> : <button className="gift-pay" style={{ marginTop: "12px" }} disabled={paymentConfirming} onClick={confirmPayment}>{paymentConfirming ? "确认中..." : "已支付，确认 ↗"}</button>}</div></div>}
+      {paymentReturnPrompt && paymentModal && <div className="payment-return-backdrop"><div className="payment-return-prompt" role="dialog" aria-modal="true" aria-labelledby="payment-return-title"><span className="modal-kicker">RETURN CHECK / {paymentModal.giftName}</span><h2 id="payment-return-title">是否完成支付？</h2><p>你已从支付宝收款页返回。完成支付后，支持值将在确认时进入现场声量。</p>{confirmWaitSeconds > 0 && <strong className="payment-return-wait">支付后 {confirmWaitSeconds} 秒可确认</strong>}<div className="payment-return-actions"><button className="payment-not-done" onClick={dismissPaymentReturn}>还没有</button><button className="payment-done" disabled={confirmWaitSeconds > 0 || paymentConfirming} onClick={confirmPayment}>{paymentConfirming ? "确认中..." : confirmWaitSeconds > 0 ? `已完成，等待 ${confirmWaitSeconds} 秒` : "已完成支付，确认"}</button></div></div></div>}
       {notice && <div className="battle-toast">{notice}</div>}
     </main>
   );
