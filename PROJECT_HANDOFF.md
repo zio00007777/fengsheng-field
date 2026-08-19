@@ -10,6 +10,8 @@
 - 站点 ID：`3fd6ae7b-ba98-416a-9506-d2021e1c4809`
 - 当前状态：已恢复，首页和 `/api/scoreboard` 已验证返回 HTTP 200
 - 本地项目目录：`/Users/sfless/fengjun-voices-site`
+- 新代码仓库：https://github.com/zio00007777/fengsheng-field/tree/main
+- 迁移状态：代码已推送到 GitHub `main`，Zeabur 服务尚未创建
 
 ## 2. 项目内容
 
@@ -29,10 +31,9 @@
 ## 3. 技术结构
 
 - React 19 + vinext + Vite
-- Nitro Netlify preset
-- Netlify Functions 处理 API
-- Netlify Blobs 持久化数据
-- 数据存储名称：`fengsheng-field`
+- Nitro Node server preset，支持 Docker/Zeabur
+- Supabase PostgreSQL 持久化数据
+- Netlify Blobs 只作为历史数据迁移来源
 
 迁移中的新数据源：Supabase PostgreSQL
 
@@ -41,12 +42,12 @@
 - 服务端环境变量：`SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY`
 - 环境变量模板：`DEPLOYMENT_ENV.example`
 
-主要数据键：
+Supabase 数据表：
 
-- `ledger/`：比分事件
-- `claims/guard/`：应援棒 session 冷却锁
-- `config/gifts`：礼物配置
-- `orders/`：订单记录
+- `ledger`：比分事件
+- `claims`：应援棒 session 冷却锁
+- `config`：礼物配置
+- `orders`：订单记录
 
 ## 4. 本地运行
 
@@ -65,6 +66,8 @@ npm run build
 ```
 
 ## 5. 部署
+
+GitHub 仓库已准备好，部署分支为 `main`。项目根目录的 `Dockerfile` 会执行 Node server 构建并监听平台提供的 `PORT`。
 
 Netlify 已绑定该项目。修改代码后：
 
@@ -126,14 +129,15 @@ Supabase 配置完成后，`/api/orders` 会创建 pending 订单并返回对应
 
 最近重要提交：
 
+- `3f625f7`：迁移运行时数据层到 Supabase，添加 Zeabur Docker 部署
 - `b950179`：迁移完整运行时到 Netlify
 - `c5e620e`：持久化应援棒冷却状态
 
-当前本地代码以这两个提交及其之前历史为基线。GPT Sites 的 Git 远程仓库此前无法完成认证，Netlify 部署不依赖该远程仓库。
+当前本地代码和 GitHub `main` 以 `3f625f7` 为基线。原 GitHub `gh-pages` 静态版本未覆盖。
 
 ## 10. 重要注意事项
 
 - 不要提交任何 Netlify access token、`ADMIN_TOKEN`、支付证书或私钥
-- 目前站点使用 Netlify Blobs，删除或更换站点前先备份数据
+- Supabase 建表 SQL 执行完成后，先运行迁移预览，再运行正式迁移
 - 支付接通前，不能把“获取安全支付链接”当作已完成支付
 - 当前站点已恢复，但免费额度仍受 Netlify 团队月度 credits 限制
